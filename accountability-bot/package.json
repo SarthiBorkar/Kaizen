@@ -1,0 +1,33 @@
+{
+  "name": "kaizen-bot",
+  "version": "1.0.0",
+  "description": "Kaizen - Telegram accountability bot with group-based social accountability",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:push": "tsx src/db/push-schema.ts"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "accountability",
+    "habits"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "grammy": "^1.21.1",
+    "@libsql/client": "^0.5.2",
+    "node-cron": "^3.0.3",
+    "dotenv": "^16.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "@types/node-cron": "^3.0.11",
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.0"
+  }
+}
