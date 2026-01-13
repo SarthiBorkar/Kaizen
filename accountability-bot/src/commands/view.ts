@@ -1,8 +1,14 @@
 import { Context } from 'grammy';
 import { getUser, getUserGroups, getUserCheckins } from '../db/queries.js';
 import { NO_GROUPS, NO_CHECKINS_YET, ERROR_NO_COMMITMENT } from '../utils/messages.js';
-import { formatDate, formatStreak } from '../utils/messages.js';
 import { calculateStreak } from '../utils/dates.js';
+import {
+  generateMonthlyCalendar,
+  generateWeeklyStreak,
+  formatStreakDisplay,
+  getRankForStreak,
+  getSeasonForStreak,
+} from '../utils/visuals.js';
 
 export async function viewCommand(ctx: Context) {
   if (!ctx.from) return;
@@ -31,26 +37,32 @@ export async function viewCommand(ctx: Context) {
     // TODO: Add group selection for multiple groups
     const group = groupsResult.rows[0];
 
-    // Get recent check-ins (last 7 days)
-    const checkinsResult = await getUserCheckins(user.id, group.id, 7);
+    // Get all check-ins for the month
+    const checkinsResult = await getUserCheckins(user.id, group.id, 90);
 
     if (checkinsResult.rows.length === 0) {
       await ctx.reply(NO_CHECKINS_YET);
       return;
     }
 
-    // Format check-ins
-    let message = `📊 Your Progress\n\nGroup: ${group.name}\n\n`;
-
-    for (const checkin of checkinsResult.rows) {
-      const emoji = checkin.completed ? '✅' : '❌';
-      const status = checkin.completed ? 'Completed' : 'Missed';
-      message += `${emoji} ${formatDate(checkin.check_date)} - ${status}\n`;
-    }
-
     // Calculate streak
     const streak = calculateStreak(checkinsResult.rows as any);
-    message += `\n🔥 Current streak: ${formatStreak(streak)}`;
+    const rank = getRankForStreak(streak);
+    const season = getSeasonForStreak(streak);
+
+    // Generate visual calendar
+    const calendar = generateMonthlyCalendar(checkinsResult.rows as any);
+
+    // Generate weekly streak (last 14 days)
+    const weeklyStreak = generateWeeklyStreak(checkinsResult.rows as any, 14);
+
+    // Build message
+    let message = `${rank.emoji} Your Progress - ${group.name} ${rank.emoji}\n\n`;
+    message += `${season.emoji} Current Season: ${season.name} (${season.kanji})\n`;
+    message += `${formatStreakDisplay(streak)}\n\n`;
+    message += `${calendar}\n\n`;
+    message += `${weeklyStreak}\n`;
+    message += `💡 Use /stats for detailed statistics`;
 
     await ctx.reply(message);
   } catch (error) {

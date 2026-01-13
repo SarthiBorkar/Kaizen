@@ -1,8 +1,8 @@
 import { Context } from 'grammy';
 import { getUser, getUserGroups, getUserStats, getUserCheckins } from '../db/queries.js';
-import { NO_GROUPS, NO_CHECKINS_YET, ERROR_NO_COMMITMENT, STATS_MESSAGE } from '../utils/messages.js';
-import { calculateStreak, formatDate as formatDateUtil } from '../utils/dates.js';
-import { formatDate } from '../utils/messages.js';
+import { NO_GROUPS, NO_CHECKINS_YET, ERROR_NO_COMMITMENT } from '../utils/messages.js';
+import { calculateStreak } from '../utils/dates.js';
+import { generateRankCard, formatStreakDisplay } from '../utils/visuals.js';
 
 export async function statsCommand(ctx: Context) {
   if (!ctx.from) return;
@@ -45,20 +45,22 @@ export async function statsCommand(ctx: Context) {
     // Calculate success rate
     const totalDays = Number(stats.total_days);
     const completedDays = Number(stats.completed_days);
-    const successRate = Math.round((completedDays / totalDays) * 100);
 
-    // Format last check-in date
-    const lastCheckin = stats.last_checkin ? formatDate(stats.last_checkin as string) : 'Never';
+    // Generate rank card
+    const rankCard = generateRankCard(currentStreak, totalDays, completedDays);
 
-    await ctx.reply(
-      STATS_MESSAGE({
-        totalDays,
-        completedDays,
-        successRate,
-        currentStreak,
-        lastCheckin,
-      })
-    );
+    // Build comprehensive stats message
+    let message = `📊 Your Statistics - ${group.name}\n\n`;
+    message += rankCard;
+    message += `\n\n━━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `📈 Detailed Stats:\n\n`;
+    message += `Total check-ins: ${totalDays}\n`;
+    message += `Completed: ${completedDays}\n`;
+    message += `Missed: ${totalDays - completedDays}\n`;
+    message += `${formatStreakDisplay(currentStreak)}\n\n`;
+    message += `💪 Keep pushing forward! Every day counts.`;
+
+    await ctx.reply(message);
   } catch (error) {
     console.error('Error in stats command:', error);
     await ctx.reply('Sorry, something went wrong. Please try again.');

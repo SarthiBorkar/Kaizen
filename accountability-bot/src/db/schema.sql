@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS groups (
     name TEXT,
     invite_code TEXT UNIQUE,
     created_by INTEGER REFERENCES users(id),
+    is_telegram_group BOOLEAN DEFAULT TRUE,  -- TRUE = existing Telegram group, FALSE = bot-created private group
+    is_active BOOLEAN DEFAULT TRUE,          -- FALSE if bot was removed
     created_at TEXT DEFAULT (datetime('now'))
 );
 

@@ -54,16 +54,21 @@ Did you complete your commitment today?
 "${commitment}"
 `;
 
-export const CHECKIN_SUCCESS = `
+export const CHECKIN_SUCCESS = (streak: number, quote?: string) => `
 Awesome! Way to go! 🎉
 
 Your streak continues. Keep up the great work!
+${streak > 0 ? `\n🔥 Current streak: ${streak} day${streak > 1 ? 's' : ''}` : ''}
+
+${quote ? `\n─────────\n${quote}` : ''}
 `;
 
-export const CHECKIN_MISSED = `
+export const CHECKIN_MISSED = (quote?: string) => `
 No worries - tomorrow is a fresh start! 💪
 
 Remember: Progress, not perfection. You've got this!
+
+${quote ? `\n─────────\n${quote}` : ''}
 `;
 
 export const ALREADY_CHECKED_IN = `

@@ -10,11 +10,32 @@ Research shows that social accountability increases goal completion rates from *
 
 ## Features
 
+### Core Functionality
 ✅ **Simple Onboarding** - Set your daily commitment in seconds
-📝 **Daily Check-ins** - Quick yes/no check-ins for your commitment
-👥 **Group Accountability** - Join or create accountability groups
-📊 **Progress Tracking** - See your streaks and success rates
-⏰ **Smart Reminders** - Daily reminders at your preferred time
+📝 **Enhanced Check-ins** - 4 levels: Crushed it!, Completed, Partial, Missed
+👥 **Hybrid Group System** - Add bot to existing Telegram groups OR create new ones
+⏰ **Smart Reminders** - Daily reminders at your preferred time (8am, 6pm, 8pm, 10pm)
+📋 **Command Menu** - Type "/" to see all available commands
+🔘 **Interactive Menu** - Button-based navigation with /menu
+
+### Group Accountability 🎯
+📢 **Social Check-ins** - Your progress is posted to the group
+📊 **Today's Report** - See who checked in today (`/today`)
+🏆 **Leaderboards** - Group rankings with streaks (`/leaderboard`)
+👥 **Real Groups** - Add bot to existing friend/family groups
+🎮 **Gamification** - Friendly competition drives results
+
+### Japanese-Inspired Progress System 🎌
+🥋 **Rank/Belt System** - Progress from White Belt → Black Belt (Sensei)
+🌸 **Seasonal Progression** - Spring (春) → Summer (夏) → Autumn (秋) → Winter (冬)
+💬 **Daily Japanese Quotes** - Inspirational kotowaza (proverbs) with each check-in
+🎊 **Milestone Celebrations** - Animated achievements at 1, 7, 21, 50, 100, 200, 365+ days
+
+### Visual Progress 📊
+📅 **Monthly Calendar** - ASCII art calendar showing your month at a glance
+🔥 **Streak Visualization** - Visual representation of your last 14 days
+📈 **Rank Cards** - Beautiful progress cards showing your current season, belt, and progress to next rank
+✨ **Progress Bars** - See how close you are to your next achievement
 
 ## Tech Stack
 
@@ -98,32 +119,75 @@ npm start
 
 ### For Users
 
-1. **Start** - `/start` to begin onboarding
-2. **Set Commitment** - Choose your daily commitment
-3. **Join Group** - Create or join an accountability group (coming in Checkpoint 3)
-4. **Daily Check-in** - `/checkin` or wait for your reminder
-5. **Track Progress** - `/view` to see your streaks, `/stats` for detailed statistics
+1. **Start** - Message @YourBotName privately and use `/start`
+2. **Set Commitment** - Choose your daily commitment and reminder time
+3. **Join Group** - Add bot to an existing Telegram group with friends/family
+4. **Daily Check-in** - Use `/checkin` privately, bot posts to group!
+5. **Track Progress** - `/view` (personal), `/today` (group), `/leaderboard` (rankings)
+6. **Get Inspired** - `/quote` for daily Japanese wisdom
+
+### Setting Up a Group
+
+1. **Personal Setup First:** Message bot privately, do `/start`
+2. **Add to Group:** Open existing Telegram group, add @YourBotName
+3. **Members Join:** Each member messages bot privately, does `/start`
+4. **Check In Daily:** Everyone checks in privately, progress posts to group!
+5. **Track Together:** Use `/today` and `/leaderboard` in group chat
 
 ### Available Commands
 
-- `/start` - Begin onboarding or restart setup
-- `/checkin` - Daily check-in for your commitment
-- `/view` - View your recent progress (last 7 days)
-- `/stats` - See detailed statistics and success rate
+**Private Chat (with bot):**
+- `/start` - Begin your Kaizen journey
+- `/checkin` - Daily check-in with 4 levels (Crushed/Completed/Partial/Missed)
+- `/view` - Beautiful monthly calendar + 14-day streak visualization
+- `/stats` - Comprehensive rank card with detailed statistics
+- `/groups` - See all your accountability groups
+- `/quote` - Get daily Japanese wisdom and inspiration 🌸
+- `/menu` - Show interactive button menu
+- `/help` - Show all commands
+
+**Group Chat:**
+- `/today` - See who checked in today
+- `/leaderboard` - Group rankings with streaks
+- `/help` - Group help message
 
 ## Project Status
 
-**Current:** Checkpoint 1 Complete ✅
+**Current:** Checkpoint 2.5 Complete ✅ (Japanese Themes + Group Features)
 
-- [x] Project foundation & setup
-- [x] Database schema & queries
-- [x] Onboarding flow (/start)
-- [x] Check-in system (/checkin)
-- [x] Progress views (/view, /stats)
-- [x] Reminder scheduling
-- [ ] Group creation & joining (Checkpoint 2)
-- [ ] Group chat integration (Checkpoint 3)
-- [ ] Advanced features (Checkpoint 4+)
+### Completed
+- [x] **Checkpoint 1:** Project foundation & setup
+  - Database schema & queries
+  - Onboarding flow (/start)
+  - Basic check-in system
+  - Progress views
+  - Reminder scheduling
+
+- [x] **Checkpoint 2:** Japanese Themes & Visual Enhancements
+  - 🌸 Daily Japanese quotes system (15+ kotowaza)
+  - 📊 Monthly calendar with ASCII art
+  - 🔥 Visual streak displays
+  - 🥋 Rank/Belt progression system (7 ranks)
+  - 🌸 Seasonal progression (4 seasons)
+  - 🎊 Milestone celebration animations
+  - 💪 Enhanced check-in flow (4 options)
+  - 📈 Beautiful rank cards
+
+- [x] **Checkpoint 2.5:** Group Features & Command Menu
+  - 📋 Telegram command menu (type "/" to see commands)
+  - 🔘 Interactive button menu (/menu)
+  - 👥 Add bot to existing Telegram groups
+  - 📢 Social check-in announcements to groups
+  - 📊 /today - See today's group check-ins
+  - 🏆 /leaderboard - Group rankings
+  - 📝 /groups - List all your groups
+  - ❓ /help - Context-aware help system
+  - 🗄️ Database support for group types
+
+### Upcoming
+- [ ] **Checkpoint 3:** Bot-created private groups (/creategroup, /joingroup)
+- [ ] **Checkpoint 4:** AI-powered features (multi-task parsing, custom time extraction)
+- [ ] **Checkpoint 5:** Polish & deploy
 
 ## Architecture
 

@@ -12,8 +12,20 @@ export function reminderTimeKeyboard() {
     .text('10:00 PM', 'reminder_22');
 }
 
-// Check-in: Yes/No buttons
+// Check-in: Enhanced options
 export function checkinKeyboard(groupId: number) {
+  return new InlineKeyboard()
+    .text('🎉 Crushed it!', `checkin_crushed_${groupId}`)
+    .row()
+    .text('✅ Completed', `checkin_yes_${groupId}`)
+    .row()
+    .text('💪 Partial', `checkin_partial_${groupId}`)
+    .row()
+    .text('❌ Missed', `checkin_no_${groupId}`);
+}
+
+// Simple Yes/No for reminders (keep this for backward compatibility)
+export function simpleCheckinKeyboard(groupId: number) {
   return new InlineKeyboard()
     .text('✅ Yes, I did it!', `checkin_yes_${groupId}`)
     .row()
@@ -45,8 +57,11 @@ export function groupSelectionKeyboard(groups: Array<{ id: number; name: string 
 export function mainMenuKeyboard() {
   return new InlineKeyboard()
     .text('✓ Check In', 'menu_checkin')
-    .text('📊 View Progress', 'menu_view')
+    .text('📊 View', 'menu_view')
     .row()
-    .text('📈 Statistics', 'menu_stats')
-    .text('⚙️ Settings', 'menu_settings');
+    .text('📈 Stats', 'menu_stats')
+    .text('💬 Quote', 'menu_quote')
+    .row()
+    .text('👥 Groups', 'menu_groups')
+    .text('❓ Help', 'menu_help');
 }
