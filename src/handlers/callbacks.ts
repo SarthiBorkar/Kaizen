@@ -1,6 +1,7 @@
 import { Context } from 'grammy';
-import { handleReminderSelection } from '../commands/start.js';
-import { handleCheckinResponse } from '../commands/checkin.js';
+import { handleReminderSelection, handleTasksDone } from '../commands/start.js';
+import { handleTaskToggle, handleSubmitCheckin } from '../commands/checkin-new.js';
+import { handleRemoveTask } from '../commands/tasks.js';
 
 // Main callback query handler
 export async function handleCallbackQuery(ctx: Context) {
@@ -12,6 +13,8 @@ export async function handleCallbackQuery(ctx: Context) {
   }
 
   try {
+    // === ONBOARDING CALLBACKS ===
+
     // Reminder time selection (during onboarding)
     if (callbackData.startsWith('reminder_')) {
       const hour = parseInt(callbackData.replace('reminder_', ''));
@@ -19,28 +22,44 @@ export async function handleCallbackQuery(ctx: Context) {
       return;
     }
 
-    // Check-in responses - Enhanced
-    if (callbackData.startsWith('checkin_crushed_')) {
-      const groupId = parseInt(callbackData.replace('checkin_crushed_', ''));
-      await handleCheckinResponse(ctx, true, groupId, 'crushed');
+    // Tasks done button (during onboarding)
+    if (callbackData === 'tasks_done') {
+      await handleTasksDone(ctx);
       return;
     }
 
-    if (callbackData.startsWith('checkin_yes_')) {
-      const groupId = parseInt(callbackData.replace('checkin_yes_', ''));
-      await handleCheckinResponse(ctx, true, groupId, 'completed');
+    // === CHECK-IN CALLBACKS ===
+
+    // Task toggle (checkbox during check-in)
+    if (callbackData.startsWith('toggle_task_')) {
+      const taskId = parseInt(callbackData.replace('toggle_task_', ''));
+      await handleTaskToggle(ctx, taskId);
       return;
     }
 
-    if (callbackData.startsWith('checkin_partial_')) {
-      const groupId = parseInt(callbackData.replace('checkin_partial_', ''));
-      await handleCheckinResponse(ctx, true, groupId, 'partial');
+    // Submit check-in
+    if (callbackData.startsWith('submit_checkin_')) {
+      const groupId = parseInt(callbackData.replace('submit_checkin_', ''));
+      await handleSubmitCheckin(ctx, groupId);
       return;
     }
 
-    if (callbackData.startsWith('checkin_no_')) {
-      const groupId = parseInt(callbackData.replace('checkin_no_', ''));
-      await handleCheckinResponse(ctx, false, groupId, 'missed');
+    // === TASK MANAGEMENT CALLBACKS ===
+
+    // Remove task
+    if (callbackData.startsWith('remove_task_')) {
+      const taskId = parseInt(callbackData.replace('remove_task_', ''));
+      await handleRemoveTask(ctx, taskId);
+      return;
+    }
+
+    // === LEGACY CALLBACKS (for backward compatibility) ===
+
+    // Old check-in responses - redirect to new flow
+    if (callbackData.startsWith('checkin_')) {
+      await ctx.answerCallbackQuery('Please use the new task-based check-in!');
+      const { checkinCommand } = await import('../commands/checkin-new.js');
+      await checkinCommand(ctx as any);
       return;
     }
 
@@ -52,17 +71,11 @@ export async function handleCallbackQuery(ctx: Context) {
       return;
     }
 
-    // View period selection
-    if (callbackData.startsWith('view_')) {
-      // TODO: Implement in next checkpoint
-      await ctx.answerCallbackQuery('Coming soon!');
-      return;
-    }
+    // === MAIN MENU CALLBACKS ===
 
-    // Main menu actions
     if (callbackData === 'menu_checkin') {
       await ctx.answerCallbackQuery();
-      const { checkinCommand } = await import('../commands/checkin.js');
+      const { checkinCommand } = await import('../commands/checkin-new.js');
       await checkinCommand(ctx as any);
       return;
     }

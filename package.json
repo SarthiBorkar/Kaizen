@@ -8,7 +8,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "db:push": "tsx src/db/push-schema.ts"
+    "db:push": "tsx src/db/push-schema.ts",
+    "db:migrate": "tsx src/db/run-migration.ts"
   },
   "keywords": [
     "telegram",

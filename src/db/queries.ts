@@ -137,3 +137,82 @@ export async function getUserStats(userId: number, groupId: number) {
 
   return result.rows[0];
 }
+
+// Task queries
+export async function createTask(userId: number, taskName: string) {
+  return await db.execute({
+    sql: `INSERT INTO tasks (user_id, task_name, active)
+          VALUES (?, ?, true)
+          RETURNING *`,
+    args: [userId, taskName],
+  });
+}
+
+export async function getUserTasks(userId: number, activeOnly: boolean = true) {
+  return await db.execute({
+    sql: activeOnly
+      ? 'SELECT * FROM tasks WHERE user_id = ? AND active = true ORDER BY created_at ASC'
+      : 'SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at ASC',
+    args: [userId],
+  });
+}
+
+export async function getTask(taskId: number) {
+  return await db.execute({
+    sql: 'SELECT * FROM tasks WHERE id = ?',
+    args: [taskId],
+  });
+}
+
+export async function deactivateTask(taskId: number) {
+  return await db.execute({
+    sql: `UPDATE tasks SET active = false WHERE id = ?`,
+    args: [taskId],
+  });
+}
+
+export async function deleteTask(taskId: number) {
+  return await db.execute({
+    sql: 'DELETE FROM tasks WHERE id = ?',
+    args: [taskId],
+  });
+}
+
+export async function createTaskCompletion(taskId: number, checkinId: number, completed: boolean) {
+  return await db.execute({
+    sql: `INSERT INTO task_completions (task_id, checkin_id, completed)
+          VALUES (?, ?, ?)
+          ON CONFLICT(task_id, checkin_id) DO UPDATE SET
+          completed = excluded.completed
+          RETURNING *`,
+    args: [taskId, checkinId, completed],
+  });
+}
+
+export async function getTaskCompletions(checkinId: number) {
+  return await db.execute({
+    sql: `SELECT tc.*, t.task_name
+          FROM task_completions tc
+          JOIN tasks t ON tc.task_id = t.id
+          WHERE tc.checkin_id = ?`,
+    args: [checkinId],
+  });
+}
+
+export async function getTaskCompletionStats(userId: number, days: number = 30) {
+  return await db.execute({
+    sql: `SELECT
+            t.id,
+            t.task_name,
+            COUNT(tc.id) as total_checkins,
+            SUM(CASE WHEN tc.completed THEN 1 ELSE 0 END) as completed_count
+          FROM tasks t
+          LEFT JOIN task_completions tc ON t.id = tc.task_id
+          LEFT JOIN checkins c ON tc.checkin_id = c.id
+          WHERE t.user_id = ? AND t.active = true
+          AND (c.check_date IS NULL OR c.check_date >= date('now', '-' || ? || ' days'))
+          GROUP BY t.id, t.task_name
+          ORDER BY t.created_at ASC`,
+    args: [userId, days],
+  });
+}

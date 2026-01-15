@@ -2,7 +2,8 @@ import { Bot } from 'grammy';
 import { config } from './config.js';
 import { testConnection } from './db/client.js';
 import { startCommand, handleOnboardingMessage } from './commands/start.js';
-import { checkinCommand } from './commands/checkin.js';
+import { checkinCommand } from './commands/checkin-new.js';
+import { addTaskCommand, removeTaskCommand, handleAddTaskMessage } from './commands/tasks.js';
 import { viewCommand } from './commands/view.js';
 import { statsCommand } from './commands/stats.js';
 import { quoteCommand } from './commands/quote.js';
@@ -29,9 +30,11 @@ if (!dbConnected) {
 // Set up bot commands (shows in Telegram menu)
 await bot.api.setMyCommands([
   { command: 'start', description: 'Begin your Kaizen journey' },
-  { command: 'checkin', description: 'Daily check-in (4 levels)' },
+  { command: 'checkin', description: 'Daily task check-in' },
   { command: 'view', description: 'Monthly calendar & streaks' },
   { command: 'stats', description: 'Your rank & statistics' },
+  { command: 'addtask', description: 'Add a new task' },
+  { command: 'removetask', description: 'Remove a task' },
   { command: 'groups', description: 'See your accountability groups' },
   { command: 'quote', description: 'Daily Japanese wisdom' },
   { command: 'menu', description: 'Show main menu' },
@@ -43,6 +46,8 @@ console.log('✅ Bot commands registered');
 // Commands
 bot.command('start', startCommand);
 bot.command('checkin', checkinCommand);
+bot.command('addtask', addTaskCommand);
+bot.command('removetask', removeTaskCommand);
 bot.command('view', viewCommand);
 bot.command('stats', statsCommand);
 bot.command('quote', quoteCommand);
@@ -58,15 +63,17 @@ bot.on('callback_query:data', handleCallbackQuery);
 // Group management - when bot is added/removed from group
 bot.on('my_chat_member', handleGroupAdd);
 
-// Handle text messages (for onboarding flow)
+// Handle text messages (for onboarding flow & task addition)
 bot.on('message:text', async (ctx) => {
   // Check if this is part of onboarding flow
-  const handled = await handleOnboardingMessage(ctx);
+  const onboardingHandled = await handleOnboardingMessage(ctx);
+  if (onboardingHandled) return;
 
-  // If not handled by onboarding, ignore (or add other text handlers here)
-  if (!handled) {
-    // Could add a help message here if needed
-  }
+  // Check if this is part of task addition flow
+  const taskAddHandled = await handleAddTaskMessage(ctx);
+  if (taskAddHandled) return;
+
+  // If not handled by any flow, ignore
 });
 
 // Error handling
@@ -84,7 +91,9 @@ scheduleReminders(bot);
 console.log('✅ Kaizen Bot is running!');
 console.log('📝 Available commands:');
 console.log('  /start - Begin onboarding');
-console.log('  /checkin - Daily check-in (4 levels)');
+console.log('  /checkin - Daily task check-in');
+console.log('  /addtask - Add a new task');
+console.log('  /removetask - Remove a task');
 console.log('  /view - Monthly calendar & streaks');
 console.log('  /stats - Rank card & statistics');
 console.log('  /quote - Daily Japanese wisdom 🌸');
