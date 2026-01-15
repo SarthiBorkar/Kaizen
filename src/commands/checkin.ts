@@ -22,7 +22,7 @@ export async function checkinCommand(ctx: Context) {
     }
 
     // Get user's groups
-    const groupsResult = await getUserGroups(user.id);
+    const groupsResult = await getUserGroups(user.id as number);
 
     if (groupsResult.rows.length === 0) {
       await ctx.reply(NO_GROUPS);
@@ -32,7 +32,7 @@ export async function checkinCommand(ctx: Context) {
     if (groupsResult.rows.length === 1) {
       // Single group - show check-in directly
       const group = groupsResult.rows[0];
-      await showCheckinPrompt(ctx, user.commitment, group.id, group.name);
+      await showCheckinPrompt(ctx, user.commitment as string, group.id as number, group.name as string);
     } else {
       // Multiple groups - ask which one
       await ctx.reply(MULTIPLE_GROUPS_SELECT, {
@@ -77,7 +77,7 @@ export async function handleCheckinResponse(
 
     // Check if already checked in today
     const { getUserCheckins } = await import('../db/queries.js');
-    const existingCheckins = await getUserCheckins(user.id, groupId, 1);
+    const existingCheckins = await getUserCheckins(user.id as number, groupId, 1);
 
     if (existingCheckins.rows.length > 0 && existingCheckins.rows[0].check_date === today) {
       await ctx.answerCallbackQuery(ALREADY_CHECKED_IN);
@@ -85,14 +85,14 @@ export async function handleCheckinResponse(
     }
 
     // Get previous streak before check-in
-    const previousCheckins = await getUserCheckins(user.id, groupId, 365);
+    const previousCheckins = await getUserCheckins(user.id as number, groupId, 365);
     const previousStreak = calculateStreak(previousCheckins.rows as any);
 
     // Create check-in
-    await createCheckin(user.id, groupId, today, completed);
+    await createCheckin(user.id as number, groupId, today, completed);
 
     // Get all check-ins to calculate new streak (only if completed)
-    const allCheckins = await getUserCheckins(user.id, groupId, 365);
+    const allCheckins = await getUserCheckins(user.id as number, groupId, 365);
     const currentStreak = completed ? calculateStreak(allCheckins.rows as any) : 0;
 
     // Check for milestones (only on completed check-ins)
@@ -199,7 +199,7 @@ ${quote}
 
         // Post to group
         const bot = ctx.api;
-        await bot.sendMessage(group.telegram_chat_id, groupMessage);
+        await bot.sendMessage(group.telegram_chat_id as number, groupMessage);
       }
     } catch (groupError) {
       console.error('Error posting to group:', groupError);

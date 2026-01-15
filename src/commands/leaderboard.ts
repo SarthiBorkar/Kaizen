@@ -27,7 +27,7 @@ Someone needs to add me to enable group features.
     }
 
     // Get all group members
-    const membersResult = await getGroupMembers(group.id);
+    const membersResult = await getGroupMembers(group.id as number);
     const members = membersResult.rows;
 
     if (members.length === 0) {
@@ -42,7 +42,7 @@ Group members: Message @${ctx.me.username} privately and use /start to join!
     // Calculate streaks for each member
     const memberStats = await Promise.all(
       members.map(async (member: any) => {
-        const checkinsResult = await getUserCheckins(member.id, group.id, 365);
+        const checkinsResult = await getUserCheckins(member.id as number, group.id as number, 365);
         const streak = calculateStreak(checkinsResult.rows as any);
         const rank = getRankForStreak(streak);
         const name = member.first_name || member.username || 'User';

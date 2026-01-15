@@ -42,7 +42,7 @@ Then I can help your group with accountability! 🎌
 
       // Create group with generated invite code
       const inviteCode = generateInviteCode();
-      await createGroup(groupId, groupName, user.id, inviteCode);
+      await createGroup(groupId, groupName, user.id as number, inviteCode);
 
       // Welcome message
       await ctx.reply(`

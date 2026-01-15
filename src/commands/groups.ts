@@ -18,7 +18,7 @@ export async function groupsCommand(ctx: Context) {
     }
 
     // Get user's groups
-    const groupsResult = await getUserGroups(user.id);
+    const groupsResult = await getUserGroups(user.id as number);
 
     if (groupsResult.rows.length === 0) {
       await ctx.reply(`

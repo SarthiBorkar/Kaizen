@@ -20,7 +20,7 @@ export async function statsCommand(ctx: Context) {
     }
 
     // Get user's groups
-    const groupsResult = await getUserGroups(user.id);
+    const groupsResult = await getUserGroups(user.id as number);
 
     if (groupsResult.rows.length === 0) {
       await ctx.reply(NO_GROUPS);
@@ -31,7 +31,7 @@ export async function statsCommand(ctx: Context) {
     const group = groupsResult.rows[0];
 
     // Get stats
-    const stats = await getUserStats(user.id, group.id);
+    const stats = await getUserStats(user.id as number, group.id as number);
 
     if (!stats || stats.total_days === 0) {
       await ctx.reply(NO_CHECKINS_YET);
@@ -39,7 +39,7 @@ export async function statsCommand(ctx: Context) {
     }
 
     // Get all check-ins to calculate streak
-    const checkinsResult = await getUserCheckins(user.id, group.id, 365); // Get all for accurate streak
+    const checkinsResult = await getUserCheckins(user.id as number, group.id as number, 365); // Get all for accurate streak
     const currentStreak = calculateStreak(checkinsResult.rows as any);
 
     // Calculate success rate

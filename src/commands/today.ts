@@ -31,11 +31,11 @@ After that, group features will work!
     }
 
     // Get today's check-ins
-    const checkinsResult = await getGroupCheckinsToday(group.id);
+    const checkinsResult = await getGroupCheckinsToday(group.id as number);
     const checkins = checkinsResult.rows;
 
     // Get all group members
-    const membersResult = await getGroupMembers(group.id);
+    const membersResult = await getGroupMembers(group.id as number);
     const totalMembers = membersResult.rows.length;
 
     if (totalMembers === 0) {

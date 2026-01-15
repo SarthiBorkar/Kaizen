@@ -26,7 +26,7 @@ export async function viewCommand(ctx: Context) {
     }
 
     // Get user's groups
-    const groupsResult = await getUserGroups(user.id);
+    const groupsResult = await getUserGroups(user.id as number);
 
     if (groupsResult.rows.length === 0) {
       await ctx.reply(NO_GROUPS);
@@ -38,7 +38,7 @@ export async function viewCommand(ctx: Context) {
     const group = groupsResult.rows[0];
 
     // Get all check-ins for the month
-    const checkinsResult = await getUserCheckins(user.id, group.id, 90);
+    const checkinsResult = await getUserCheckins(user.id as number, group.id as number, 90);
 
     if (checkinsResult.rows.length === 0) {
       await ctx.reply(NO_CHECKINS_YET);
