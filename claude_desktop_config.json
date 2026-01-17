@@ -1,0 +1,40 @@
+{
+  "mcpServers": {
+    "kaizen-automation": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/Kaizen/dist/mcp/server.js"
+      ],
+      "env": {
+        "NOTION_API_KEY": "${NOTION_API_KEY}",
+        "GOOGLE_CREDENTIALS": "${GOOGLE_CREDENTIALS}"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/username/Documents",
+        "/Users/username/Documents/ObsidianVault"
+      ]
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+      }
+    },
+    "fetch": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-fetch"
+      ]
+    }
+  }
+}
