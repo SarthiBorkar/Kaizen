@@ -30,7 +30,18 @@ Research shows that **accountability increases goal completion from 10% to 95%**
 📊 **Leaderboards** - Friendly competition with your group
 ⏰ **Smart Reminders** - Never miss a day
 
-### 🤖 NEW: MCP Workflow Automation
+### 🤖 AI Assistant (NEW!)
+
+🧠 **AI Chat** - Ask anything via text or voice using Groq's Llama 3.3 70B
+🎙️ **Voice Messages** - Send voice, get transcribed and answered automatically
+🔬 **Deep Research** - Web-grounded answers with sources via Perplexity
+💬 **Natural Language** - Just ask questions normally in private chats
+⚡ **Ultra Fast** - Responses in 1-2 seconds with Groq
+📚 **Conversation Memory** - AI remembers context from recent messages
+
+[📖 Read the full AI Assistant Guide](docs/AI_ASSISTANT.md)
+
+### ⚙️ MCP Workflow Automation
 
 🔬 **Research Assistant** - Research any topic and generate comprehensive documents
 🌐 **Web Scraper** - Extract content from web pages and save as documents
@@ -109,7 +120,12 @@ npm run dev
 - `/today` - Who checked in today
 - `/leaderboard` - Group rankings
 
-**🤖 Automation Commands (NEW):**
+**🤖 AI Assistant Commands (NEW):**
+- `/ask <question>` - Ask AI anything (text chat)
+- `/dr <topic>` - Deep research with web sources
+- `🎙️ Voice message` - Send voice, get AI response
+
+**⚙️ Automation Commands:**
 - `/automate` - Open automation hub
 - `/research` - Research a topic and create documents
 - `/scrape` - Extract content from web pages

@@ -23,6 +23,8 @@ import {
   handleAutomationMessage,
   handleResearchDepthCallback
 } from './commands/automation.js';
+import { askCommand, deepResearchCommand, clearAICommand, handleAITextMessage } from './commands/ai.js';
+import { handleVoiceMessage } from './handlers/voice.js';
 
 // Initialize bot
 const bot = new Bot(config.botToken);
@@ -46,7 +48,9 @@ await bot.api.setMyCommands([
   { command: 'removetask', description: 'Remove a task' },
   { command: 'groups', description: 'See your accountability groups' },
   { command: 'quote', description: 'Daily Japanese wisdom' },
-  { command: 'automate', description: '🤖 Automation & workflow hub' },
+  { command: 'ask', description: '🤖 Ask AI anything' },
+  { command: 'dr', description: '🔬 Deep research with sources' },
+  { command: 'automate', description: '⚙️ Automation & workflow hub' },
   { command: 'research', description: '📚 Research a topic' },
   { command: 'scrape', description: '🌐 Scrape web content' },
   { command: 'calendar', description: '📅 Manage Google Calendar' },
@@ -76,13 +80,23 @@ bot.command('research', researchCommand);
 bot.command('scrape', scrapeCommand);
 bot.command('calendar', calendarCommand);
 
+// AI commands
+bot.command('ask', askCommand);
+bot.command('deepresearch', deepResearchCommand);
+bot.command('dr', deepResearchCommand); // Alias for deepresearch
+bot.command('clearai', clearAICommand);
+
 // Callback queries (inline button clicks)
 bot.on('callback_query:data', handleCallbackQuery);
 
 // Group management - when bot is added/removed from group
 bot.on('my_chat_member', handleGroupAdd);
 
-// Handle text messages (for onboarding flow & task addition & automation)
+// Voice and audio messages
+bot.on('message:voice', handleVoiceMessage);
+bot.on('message:audio', handleVoiceMessage);
+
+// Handle text messages (for onboarding flow & task addition & automation & AI)
 bot.on('message:text', async (ctx) => {
   // Check if this is part of onboarding flow
   const onboardingHandled = await handleOnboardingMessage(ctx);
@@ -94,6 +108,10 @@ bot.on('message:text', async (ctx) => {
 
   // Check if this is part of automation flow
   await handleAutomationMessage(ctx);
+
+  // Check if this should be handled by AI
+  const aiHandled = await handleAITextMessage(ctx);
+  if (aiHandled) return;
 
   // If not handled by any flow, ignore
 });

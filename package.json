@@ -31,7 +31,9 @@
     "cheerio": "^1.0.0-rc.12",
     "pdfkit": "^0.15.0",
     "turndown": "^7.2.0",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "groq-sdk": "^0.7.0",
+    "@grammyjs/files": "^1.1.1"
   },
   "devDependencies": {
     "@types/node": "^20.11.16",
