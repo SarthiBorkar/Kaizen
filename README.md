@@ -21,12 +21,27 @@ Research shows that **accountability increases goal completion from 10% to 95%**
 
 ## Features
 
+### Core Accountability Features
+
 🎯 **Group Accountability** - Add bot to existing Telegram groups, check-ins post automatically
 🥋 **Rank System** - White Belt → Black Belt (Sensei) as you build consistency
 🔥 **Streak Tracking** - Visual progress & milestone celebrations
 🌸 **Japanese Wisdom** - Daily kotowaza (proverbs) for inspiration
 📊 **Leaderboards** - Friendly competition with your group
 ⏰ **Smart Reminders** - Never miss a day
+
+### 🤖 NEW: MCP Workflow Automation
+
+🔬 **Research Assistant** - Research any topic and generate comprehensive documents
+🌐 **Web Scraper** - Extract content from web pages and save as documents
+📄 **Document Creator** - Create PDFs and formatted documents
+📅 **Calendar Integration** - Manage Google Calendar events
+📝 **Notion Integration** - Save research and notes to Notion
+💾 **Google Drive** - Upload and organize files in Drive
+🗂️ **Obsidian Sync** - Create and update notes in your Obsidian vault
+🔄 **Workflow Orchestration** - Chain multiple tools for complex automation
+
+[📖 Read the full MCP Automation Guide](docs/MCP_AUTOMATION.md)
 
 ---
 
@@ -68,24 +83,38 @@ npm run dev
 ## Tech Stack
 
 - **Runtime:** Node.js + TypeScript
-- **Framework:** grammy (Telegram bot)
+- **Bot Framework:** grammy (Telegram bot)
 - **Database:** Turso (libSQL)
+- **Automation:** Model Context Protocol (MCP)
+- **Integrations:** Notion API, Google APIs, Obsidian (file system)
+- **Web Scraping:** Cheerio, Axios
+- **Document Generation:** PDFKit
 - **Deploy:** Railway / Any Node.js host
 
 ---
 
 ## Commands
 
-**Private Chat:**
+**Accountability Commands:**
 - `/start` - Begin your journey
-- `/checkin` - Daily check-in (Crushed/Completed/Partial/Missed)
+- `/checkin` - Daily check-in with task tracking
+- `/addtask` - Add a new task to track
+- `/removetask` - Remove a task
 - `/view` - Progress calendar & streaks
 - `/stats` - Your rank & detailed stats
+- `/groups` - See your accountability groups
 - `/quote` - Japanese wisdom
 
-**Group Chat:**
+**Group Commands:**
 - `/today` - Who checked in today
 - `/leaderboard` - Group rankings
+
+**🤖 Automation Commands (NEW):**
+- `/automate` - Open automation hub
+- `/research` - Research a topic and create documents
+- `/scrape` - Extract content from web pages
+- `/calendar` - Manage Google Calendar events
+- `/help` - Show all commands and features
 
 ---
 
