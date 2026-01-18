@@ -27,6 +27,11 @@ import { askCommand, deepResearchCommand, clearAICommand, handleAITextMessage } 
 import { handleVoiceMessage } from './handlers/voice.js';
 import { testReminderCommand } from './commands/test-reminder.js';
 import { rateLimitsCommand } from './commands/rate-limit-info.js';
+import { remindCommand } from './commands/remind.js';
+import { freezeCommand } from './commands/freeze.js';
+import { reportCommand } from './commands/report.js';
+import { buddyCommand } from './commands/buddy.js';
+import { insightsCommand } from './commands/insights.js';
 
 // Initialize bot
 const bot = new Bot(config.botToken);
@@ -52,6 +57,11 @@ await bot.api.setMyCommands([
   { command: 'quote', description: 'Daily Japanese wisdom' },
   { command: 'ask', description: '🤖 Ask AI anything' },
   { command: 'dr', description: '🔬 Deep research with sources' },
+  { command: 'insights', description: '🔮 AI habit insights' },
+  { command: 'remind', description: '⏰ Set daily reminder time' },
+  { command: 'freeze', description: '❄️ Use streak freeze' },
+  { command: 'report', description: '📊 Weekly progress report' },
+  { command: 'buddy', description: '👥 Find accountability partner' },
   { command: 'testreminder', description: '⏰ Test reminder notifications' },
   { command: 'ratelimits', description: '📊 Check your API usage limits' },
   { command: 'automate', description: '⚙️ Automation & workflow hub' },
@@ -88,9 +98,14 @@ bot.command('calendar', calendarCommand);
 bot.command('ask', askCommand);
 bot.command('deepresearch', deepResearchCommand);
 bot.command('dr', deepResearchCommand); // Alias for deepresearch
+bot.command('insights', insightsCommand);
 bot.command('clearai', clearAICommand);
 
-// Test commands
+// Reminder & Streak commands
+bot.command('remind', remindCommand);
+bot.command('freeze', freezeCommand);
+bot.command('report', reportCommand);
+bot.command('buddy', buddyCommand);
 bot.command('testreminder', testReminderCommand);
 bot.command('ratelimits', rateLimitsCommand);
 
