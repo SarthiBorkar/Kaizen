@@ -20,26 +20,28 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "grammy": "^1.21.1",
+    "@grammyjs/files": "^1.1.1",
     "@libsql/client": "^0.5.2",
-    "node-cron": "^3.0.3",
-    "dotenv": "^16.4.1",
     "@modelcontextprotocol/sdk": "^1.0.4",
     "@notionhq/client": "^2.2.15",
-    "googleapis": "^134.0.0",
     "axios": "^1.6.7",
     "cheerio": "^1.0.0-rc.12",
-    "pdfkit": "^0.15.0",
-    "turndown": "^7.2.0",
-    "js-yaml": "^4.1.0",
+    "dotenv": "^16.4.1",
+    "googleapis": "^134.0.0",
+    "grammy": "^1.21.1",
     "groq-sdk": "^0.7.0",
-    "@grammyjs/files": "^1.1.1"
+    "js-yaml": "^4.1.0",
+    "node-cron": "^3.0.3",
+    "pdfkit": "^0.15.0",
+    "turndown": "^7.2.0"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.11.16",
     "@types/node-cron": "^3.0.11",
-    "@types/js-yaml": "^4.0.9",
-    "typescript": "^5.3.3",
-    "tsx": "^4.7.0"
+    "@types/pdfkit": "^0.17.4",
+    "@types/turndown": "^5.0.6",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
   }
 }

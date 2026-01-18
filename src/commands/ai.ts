@@ -1,5 +1,6 @@
 import { Context } from "grammy";
 import { chatWithAI, researchWithPerplexity, clearConversationHistory, analyzeIntent } from "../services/ai.js";
+import { rateLimiter, RATE_LIMITS, getRateLimitMessage } from "../utils/rate-limiter.js";
 
 /**
  * /ask command - Ask AI anything
@@ -23,6 +24,15 @@ export async function askCommand(ctx: Context) {
         "💡 *Tip:* You can also just send me a voice message!",
       { parse_mode: "Markdown" }
     );
+    return;
+  }
+
+  // Check rate limit
+  if (rateLimiter.isRateLimited(userId, RATE_LIMITS.AI_ASK.action, RATE_LIMITS.AI_ASK.maxRequests, RATE_LIMITS.AI_ASK.windowMs)) {
+    const resetTime = rateLimiter.getResetTime(userId, RATE_LIMITS.AI_ASK.action);
+    await ctx.reply(getRateLimitMessage(RATE_LIMITS.AI_ASK.action, resetTime), {
+      parse_mode: "Markdown",
+    });
     return;
   }
 
@@ -66,6 +76,15 @@ export async function deepResearchCommand(ctx: Context) {
         "I'll search the web and provide comprehensive, cited information!",
       { parse_mode: "Markdown" }
     );
+    return;
+  }
+
+  // Check rate limit
+  if (rateLimiter.isRateLimited(userId, RATE_LIMITS.AI_RESEARCH.action, RATE_LIMITS.AI_RESEARCH.maxRequests, RATE_LIMITS.AI_RESEARCH.windowMs)) {
+    const resetTime = rateLimiter.getResetTime(userId, RATE_LIMITS.AI_RESEARCH.action);
+    await ctx.reply(getRateLimitMessage(RATE_LIMITS.AI_RESEARCH.action, resetTime), {
+      parse_mode: "Markdown",
+    });
     return;
   }
 
@@ -129,6 +148,12 @@ export async function handleAITextMessage(ctx: Context) {
   const messageText = ctx.message?.text;
 
   if (!userId || !messageText) return false;
+
+  // Check rate limit for natural language queries
+  if (rateLimiter.isRateLimited(userId, RATE_LIMITS.AI_ASK.action, RATE_LIMITS.AI_ASK.maxRequests, RATE_LIMITS.AI_ASK.windowMs)) {
+    // Silently skip if rate limited (don't want to spam user for every message)
+    return false;
+  }
 
   // Check if message looks like a question or request to AI
   // (starts with @botname, contains question marks, or certain keywords)

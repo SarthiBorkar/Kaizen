@@ -26,35 +26,121 @@ async function sendReminders(bot: Bot, hour: number) {
   const today = getTodayDate();
 
   try {
-    // Get all users with this reminder hour
-    const result = await db.execute({
-      sql: `SELECT u.telegram_id, u.commitment, m.group_id
+    // Get users with groups who haven't checked in
+    const usersWithGroups = await db.execute({
+      sql: `SELECT DISTINCT u.telegram_id, u.id as user_id, u.first_name
             FROM users u
             JOIN memberships m ON u.id = m.user_id
-            WHERE u.reminder_hour = ?
-            AND NOT EXISTS (
-              SELECT 1 FROM checkins c
-              WHERE c.user_id = u.id
-              AND c.group_id = m.group_id
-              AND c.check_date = ?
-            )`,
-      args: [hour, today],
+            WHERE u.reminder_hour = ?`,
+      args: [hour],
     });
 
-    console.log(`⏰ Sending ${result.rows.length} reminders for ${hour}:00`);
+    console.log(`⏰ Sending ${usersWithGroups.rows.length} reminders for ${hour}:00`);
 
-    // Send reminder to each user
-    for (const row of result.rows) {
+    // Send reminder to each user with their groups
+    for (const userRow of usersWithGroups.rows) {
       try {
+        const userId = userRow.user_id as number;
+        const telegramId = userRow.telegram_id as number;
+        const firstName = userRow.first_name as string;
+
+        // Get user's tasks
+        const { getUserTasks } = await import('../db/queries.js');
+        const tasksResult = await getUserTasks(userId);
+
+        if (tasksResult.rows.length === 0) {
+          // No tasks, skip
+          continue;
+        }
+
+        // Get groups where user hasn't checked in today
+        const groupsResult = await db.execute({
+          sql: `SELECT g.id, g.name, g.telegram_chat_id
+                FROM groups g
+                JOIN memberships m ON g.id = m.group_id
+                WHERE m.user_id = ?
+                AND NOT EXISTS (
+                  SELECT 1 FROM checkins c
+                  WHERE c.user_id = ?
+                  AND c.group_id = g.id
+                  AND c.check_date = ?
+                )`,
+          args: [userId, userId, today],
+        });
+
+        if (groupsResult.rows.length === 0) {
+          // Already checked in everywhere
+          continue;
+        }
+
+        // Create task list
+        const taskList = tasksResult.rows
+          .map((task: any, idx: number) => `${idx + 1}. ${task.task_name}`)
+          .join('\n');
+
+        // Send reminder with first group's keyboard (user can select group during checkin)
+        const firstGroup = groupsResult.rows[0];
+
         await bot.api.sendMessage(
-          row.telegram_id as number,
-          CHECKIN_PROMPT(row.commitment as string),
+          telegramId,
+          `⏰ **Daily Check-in Reminder**\n\n` +
+          `Hey ${firstName}! Time for your daily check-in.\n\n` +
+          `**Your tasks:**\n${taskList}\n\n` +
+          `Have you completed your tasks today?`,
           {
-            reply_markup: checkinKeyboard(row.group_id as number),
+            parse_mode: 'Markdown',
+            reply_markup: checkinKeyboard(firstGroup.id as number),
           }
         );
       } catch (error) {
-        console.error(`Failed to send reminder to user ${row.telegram_id}:`, error);
+        console.error(`Failed to send reminder to user ${userRow.telegram_id}:`, error);
+      }
+    }
+
+    // Also send reminders to users without groups (they still need to be reminded)
+    const usersWithoutGroups = await db.execute({
+      sql: `SELECT u.telegram_id, u.id as user_id, u.first_name
+            FROM users u
+            WHERE u.reminder_hour = ?
+            AND NOT EXISTS (
+              SELECT 1 FROM memberships m WHERE m.user_id = u.id
+            )`,
+      args: [hour],
+    });
+
+    console.log(`⏰ Sending ${usersWithoutGroups.rows.length} reminders to users without groups`);
+
+    for (const userRow of usersWithoutGroups.rows) {
+      try {
+        const userId = userRow.user_id as number;
+        const telegramId = userRow.telegram_id as number;
+        const firstName = userRow.first_name as string;
+
+        // Get user's tasks
+        const { getUserTasks } = await import('../db/queries.js');
+        const tasksResult = await getUserTasks(userId);
+
+        if (tasksResult.rows.length === 0) {
+          continue;
+        }
+
+        const taskList = tasksResult.rows
+          .map((task: any, idx: number) => `${idx + 1}. ${task.task_name}`)
+          .join('\n');
+
+        await bot.api.sendMessage(
+          telegramId,
+          `⏰ **Daily Check-in Reminder**\n\n` +
+          `Hey ${firstName}! Time for your daily tasks.\n\n` +
+          `**Your tasks:**\n${taskList}\n\n` +
+          `💡 *Tip: Add me to a Telegram group with friends for accountability!*\n` +
+          `Use /checkin to track your progress.`,
+          {
+            parse_mode: 'Markdown',
+          }
+        );
+      } catch (error) {
+        console.error(`Failed to send reminder to user ${userRow.telegram_id}:`, error);
       }
     }
   } catch (error) {
@@ -62,30 +148,76 @@ async function sendReminders(bot: Bot, hour: number) {
   }
 }
 
-// Immediate reminder for testing (don't use in production)
-export async function sendTestReminder(bot: Bot, telegramId: number) {
+// Immediate reminder for testing
+export async function sendTestReminder(bot: any, telegramId: number) {
   try {
-    const result = await db.execute({
-      sql: `SELECT u.commitment, m.group_id
-            FROM users u
-            JOIN memberships m ON u.id = m.user_id
-            WHERE u.telegram_id = ?
-            LIMIT 1`,
+    // Get user info
+    const userResult = await db.execute({
+      sql: `SELECT u.id, u.first_name FROM users WHERE u.telegram_id = ?`,
       args: [telegramId],
     });
 
-    if (result.rows.length > 0) {
-      const row = result.rows[0];
-      await bot.api.sendMessage(
+    if (userResult.rows.length === 0) {
+      throw new Error('User not found');
+    }
+
+    const user = userResult.rows[0];
+    const userId = user.id as number;
+    const firstName = user.first_name as string;
+
+    // Get user's tasks
+    const { getUserTasks } = await import('../db/queries.js');
+    const tasksResult = await getUserTasks(userId);
+
+    if (tasksResult.rows.length === 0) {
+      throw new Error('No tasks found');
+    }
+
+    const taskList = tasksResult.rows
+      .map((task: any, idx: number) => `${idx + 1}. ${task.task_name}`)
+      .join('\n');
+
+    // Check if user has groups
+    const groupsResult = await db.execute({
+      sql: `SELECT g.id FROM groups g
+            JOIN memberships m ON g.id = m.group_id
+            WHERE m.user_id = ?
+            LIMIT 1`,
+      args: [userId],
+    });
+
+    if (groupsResult.rows.length > 0) {
+      // User has groups
+      const groupId = groupsResult.rows[0].id as number;
+      await bot.sendMessage(
         telegramId,
-        CHECKIN_PROMPT(row.commitment as string),
+        `⏰ **Test Reminder**\n\n` +
+        `Hey ${firstName}! This is a test of your daily reminder.\n\n` +
+        `**Your tasks:**\n${taskList}\n\n` +
+        `Have you completed your tasks today?`,
         {
-          reply_markup: checkinKeyboard(row.group_id as number),
+          parse_mode: 'Markdown',
+          reply_markup: checkinKeyboard(groupId),
         }
       );
-      console.log(`📬 Test reminder sent to ${telegramId}`);
+    } else {
+      // User without groups
+      await bot.sendMessage(
+        telegramId,
+        `⏰ **Test Reminder**\n\n` +
+        `Hey ${firstName}! This is a test of your daily reminder.\n\n` +
+        `**Your tasks:**\n${taskList}\n\n` +
+        `💡 *Tip: Add me to a Telegram group with friends for accountability!*\n` +
+        `Use /checkin to track your progress.`,
+        {
+          parse_mode: 'Markdown',
+        }
+      );
     }
+
+    console.log(`📬 Test reminder sent to ${telegramId}`);
   } catch (error) {
     console.error('Error sending test reminder:', error);
+    throw error;
   }
 }

@@ -138,10 +138,13 @@ export async function createNotionPage(args: {
       }
     }
 
+    // Construct the Notion page URL from the page ID
+    const pageUrl = `https://notion.so/${response.id.replace(/-/g, '')}`;
+
     return {
       success: true,
       page_id: response.id,
-      page_url: response.url,
+      page_url: pageUrl,
       message: `Notion page created successfully: ${title}`,
     };
   } catch (error) {

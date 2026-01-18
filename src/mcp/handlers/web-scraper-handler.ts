@@ -132,7 +132,7 @@ export async function extractContent(args: {
 
     // Try to find main content
     const contentSelectors = ["article", "main", '[role="main"]', ".content", "#content"];
-    let mainElement = $("body");
+    let mainElement: any = $("body");
 
     for (const selector of contentSelectors) {
       const element = $(selector).first();

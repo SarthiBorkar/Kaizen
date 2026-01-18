@@ -25,6 +25,8 @@ import {
 } from './commands/automation.js';
 import { askCommand, deepResearchCommand, clearAICommand, handleAITextMessage } from './commands/ai.js';
 import { handleVoiceMessage } from './handlers/voice.js';
+import { testReminderCommand } from './commands/test-reminder.js';
+import { rateLimitsCommand } from './commands/rate-limit-info.js';
 
 // Initialize bot
 const bot = new Bot(config.botToken);
@@ -50,6 +52,8 @@ await bot.api.setMyCommands([
   { command: 'quote', description: 'Daily Japanese wisdom' },
   { command: 'ask', description: '🤖 Ask AI anything' },
   { command: 'dr', description: '🔬 Deep research with sources' },
+  { command: 'testreminder', description: '⏰ Test reminder notifications' },
+  { command: 'ratelimits', description: '📊 Check your API usage limits' },
   { command: 'automate', description: '⚙️ Automation & workflow hub' },
   { command: 'research', description: '📚 Research a topic' },
   { command: 'scrape', description: '🌐 Scrape web content' },
@@ -85,6 +89,10 @@ bot.command('ask', askCommand);
 bot.command('deepresearch', deepResearchCommand);
 bot.command('dr', deepResearchCommand); // Alias for deepresearch
 bot.command('clearai', clearAICommand);
+
+// Test commands
+bot.command('testreminder', testReminderCommand);
+bot.command('ratelimits', rateLimitsCommand);
 
 // Callback queries (inline button clicks)
 bot.on('callback_query:data', handleCallbackQuery);

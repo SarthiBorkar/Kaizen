@@ -1,5 +1,6 @@
 import { Context } from "grammy";
 import { mcpClient } from "../mcp/client.js";
+import { rateLimiter, RATE_LIMITS, getRateLimitMessage } from "../utils/rate-limiter.js";
 
 // Store user automation states
 const automationStates = new Map<
@@ -43,6 +44,15 @@ export async function researchCommand(ctx: Context) {
   const userId = ctx.from?.id;
   if (!userId) return;
 
+  // Check rate limit
+  if (rateLimiter.isRateLimited(userId, RATE_LIMITS.RESEARCH_AUTOMATION.action, RATE_LIMITS.RESEARCH_AUTOMATION.maxRequests, RATE_LIMITS.RESEARCH_AUTOMATION.windowMs)) {
+    const resetTime = rateLimiter.getResetTime(userId, RATE_LIMITS.RESEARCH_AUTOMATION.action);
+    await ctx.reply(getRateLimitMessage(RATE_LIMITS.RESEARCH_AUTOMATION.action, resetTime), {
+      parse_mode: "Markdown",
+    });
+    return;
+  }
+
   automationStates.set(userId, {
     step: "awaiting_topic",
     data: {},
@@ -60,6 +70,15 @@ export async function researchCommand(ctx: Context) {
 export async function scrapeCommand(ctx: Context) {
   const userId = ctx.from?.id;
   if (!userId) return;
+
+  // Check rate limit
+  if (rateLimiter.isRateLimited(userId, RATE_LIMITS.WEB_SCRAPE.action, RATE_LIMITS.WEB_SCRAPE.maxRequests, RATE_LIMITS.WEB_SCRAPE.windowMs)) {
+    const resetTime = rateLimiter.getResetTime(userId, RATE_LIMITS.WEB_SCRAPE.action);
+    await ctx.reply(getRateLimitMessage(RATE_LIMITS.WEB_SCRAPE.action, resetTime), {
+      parse_mode: "Markdown",
+    });
+    return;
+  }
 
   automationStates.set(userId, {
     step: "awaiting_url",

@@ -1,5 +1,6 @@
 import { Context } from "grammy";
 import { transcribeAudio, chatWithAI, analyzeIntent } from "../services/ai.js";
+import { rateLimiter, RATE_LIMITS, getRateLimitMessage } from "../utils/rate-limiter.js";
 import fs from "fs";
 import path from "path";
 
@@ -18,6 +19,15 @@ export async function handleVoiceMessage(ctx: Context) {
 
   const voice = ctx.message?.voice;
   if (!voice) return;
+
+  // Check rate limit
+  if (rateLimiter.isRateLimited(userId, RATE_LIMITS.VOICE_MESSAGE.action, RATE_LIMITS.VOICE_MESSAGE.maxRequests, RATE_LIMITS.VOICE_MESSAGE.windowMs)) {
+    const resetTime = rateLimiter.getResetTime(userId, RATE_LIMITS.VOICE_MESSAGE.action);
+    await ctx.reply(getRateLimitMessage(RATE_LIMITS.VOICE_MESSAGE.action, resetTime), {
+      parse_mode: "Markdown",
+    });
+    return;
+  }
 
   try {
     // Send "processing" message
