@@ -2,6 +2,7 @@ import { Context } from 'grammy';
 import { handleReminderSelection, handleTasksDone } from '../commands/start.js';
 import { handleTaskToggle, handleSubmitCheckin } from '../commands/checkin-new.js';
 import { handleRemoveTask } from '../commands/tasks.js';
+import { handleAutomationCallback, handleResearchDepthCallback } from '../commands/automation.js';
 
 // Main callback query handler
 export async function handleCallbackQuery(ctx: Context) {
@@ -68,6 +69,18 @@ export async function handleCallbackQuery(ctx: Context) {
       const groupId = parseInt(callbackData.replace('select_group_', ''));
       // TODO: Implement group selection for check-in
       await ctx.answerCallbackQuery('Group selected');
+      return;
+    }
+
+    // === AUTOMATION CALLBACKS ===
+
+    if (callbackData.startsWith('auto_') || callbackData.startsWith('cal_')) {
+      await handleAutomationCallback(ctx);
+      return;
+    }
+
+    if (callbackData.startsWith('depth_')) {
+      await handleResearchDepthCallback(ctx);
       return;
     }
 

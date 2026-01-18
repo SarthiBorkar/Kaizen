@@ -14,6 +14,19 @@ import { leaderboardCommand } from './commands/leaderboard.js';
 import { handleCallbackQuery } from './handlers/callbacks.js';
 import { scheduleReminders } from './handlers/reminders.js';
 import { handleGroupAdd } from './handlers/groups.js';
+import {
+  automationCommand,
+  researchCommand,
+  scrapeCommand,
+  calendarCommand,
+  handleAutomationCallback,
+  handleAutomationMessage,
+  handleResearchDepthCallback
+} from './commands/automation.js';
+import { askCommand, deepResearchCommand, clearAICommand, handleAITextMessage } from './commands/ai.js';
+import { handleVoiceMessage } from './handlers/voice.js';
+import { testReminderCommand } from './commands/test-reminder.js';
+import { rateLimitsCommand } from './commands/rate-limit-info.js';
 
 // Initialize bot
 const bot = new Bot(config.botToken);
@@ -37,6 +50,14 @@ await bot.api.setMyCommands([
   { command: 'removetask', description: 'Remove a task' },
   { command: 'groups', description: 'See your accountability groups' },
   { command: 'quote', description: 'Daily Japanese wisdom' },
+  { command: 'ask', description: '🤖 Ask AI anything' },
+  { command: 'dr', description: '🔬 Deep research with sources' },
+  { command: 'testreminder', description: '⏰ Test reminder notifications' },
+  { command: 'ratelimits', description: '📊 Check your API usage limits' },
+  { command: 'automate', description: '⚙️ Automation & workflow hub' },
+  { command: 'research', description: '📚 Research a topic' },
+  { command: 'scrape', description: '🌐 Scrape web content' },
+  { command: 'calendar', description: '📅 Manage Google Calendar' },
   { command: 'menu', description: 'Show main menu' },
   { command: 'help', description: 'Show all commands' },
 ]);
@@ -57,13 +78,33 @@ bot.command('groups', groupsCommand);
 bot.command('today', todayCommand);
 bot.command('leaderboard', leaderboardCommand);
 
+// Automation commands
+bot.command('automate', automationCommand);
+bot.command('research', researchCommand);
+bot.command('scrape', scrapeCommand);
+bot.command('calendar', calendarCommand);
+
+// AI commands
+bot.command('ask', askCommand);
+bot.command('deepresearch', deepResearchCommand);
+bot.command('dr', deepResearchCommand); // Alias for deepresearch
+bot.command('clearai', clearAICommand);
+
+// Test commands
+bot.command('testreminder', testReminderCommand);
+bot.command('ratelimits', rateLimitsCommand);
+
 // Callback queries (inline button clicks)
 bot.on('callback_query:data', handleCallbackQuery);
 
 // Group management - when bot is added/removed from group
 bot.on('my_chat_member', handleGroupAdd);
 
-// Handle text messages (for onboarding flow & task addition)
+// Voice and audio messages
+bot.on('message:voice', handleVoiceMessage);
+bot.on('message:audio', handleVoiceMessage);
+
+// Handle text messages (for onboarding flow & task addition & automation & AI)
 bot.on('message:text', async (ctx) => {
   // Check if this is part of onboarding flow
   const onboardingHandled = await handleOnboardingMessage(ctx);
@@ -72,6 +113,13 @@ bot.on('message:text', async (ctx) => {
   // Check if this is part of task addition flow
   const taskAddHandled = await handleAddTaskMessage(ctx);
   if (taskAddHandled) return;
+
+  // Check if this is part of automation flow
+  await handleAutomationMessage(ctx);
+
+  // Check if this should be handled by AI
+  const aiHandled = await handleAITextMessage(ctx);
+  if (aiHandled) return;
 
   // If not handled by any flow, ignore
 });
@@ -97,6 +145,10 @@ console.log('  /removetask - Remove a task');
 console.log('  /view - Monthly calendar & streaks');
 console.log('  /stats - Rank card & statistics');
 console.log('  /quote - Daily Japanese wisdom 🌸');
+console.log('  /automate - 🤖 Automation & workflow hub');
+console.log('  /research - 📚 Research a topic');
+console.log('  /scrape - 🌐 Scrape web content');
+console.log('  /calendar - 📅 Manage Google Calendar');
 console.log('  /menu - Show main menu buttons');
 console.log('  /help - Show help message');
 console.log('');
