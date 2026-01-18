@@ -4,6 +4,8 @@ import { db } from '../db/client.js';
 import { CHECKIN_PROMPT } from '../utils/messages.js';
 import { checkinKeyboard } from '../utils/keyboards.js';
 import { getTodayDate } from '../utils/dates.js';
+import { resetWeeklyFreezes } from '../db/queries.js';
+import { sendWeeklyReports } from '../commands/report.js';
 
 // Schedule reminders for each hour (8am, 6pm, 8pm, 10pm)
 export function scheduleReminders(bot: Bot) {
@@ -19,7 +21,29 @@ export function scheduleReminders(bot: Bot) {
   // 10:00 PM (22:00)
   cron.schedule('0 22 * * *', () => sendReminders(bot, 22));
 
+  // Reset streak freezes daily at midnight (checks for 7+ day old resets)
+  cron.schedule('0 0 * * *', async () => {
+    try {
+      const result = await resetWeeklyFreezes();
+      console.log(`❄️ Reset ${result.rowsAffected} weekly streak freezes`);
+    } catch (error) {
+      console.error('Error resetting weekly freezes:', error);
+    }
+  });
+
+  // Send weekly reports every Sunday at 8:00 PM
+  cron.schedule('0 20 * * 0', async () => {
+    try {
+      console.log('📊 Sending weekly reports...');
+      await sendWeeklyReports(bot);
+    } catch (error) {
+      console.error('Error sending weekly reports:', error);
+    }
+  });
+
   console.log('✅ Reminder scheduler initialized');
+  console.log('✅ Streak freeze reset scheduler initialized');
+  console.log('✅ Weekly report scheduler initialized (Sundays at 8 PM)');
 }
 
 async function sendReminders(bot: Bot, hour: number) {

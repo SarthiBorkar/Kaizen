@@ -132,6 +132,12 @@ export const RATE_LIMITS = {
     action: 'ai_research',
   },
 
+  AI_INSIGHTS: {
+    maxRequests: 5, // 5 insights
+    windowMs: 60 * 60 * 1000, // per hour
+    action: 'ai_insights',
+  },
+
   VOICE_MESSAGE: {
     maxRequests: 15, // 15 voice messages
     windowMs: 60 * 60 * 1000, // per hour
@@ -186,6 +192,7 @@ export function getRateLimitMessage(
   const actionNames: Record<string, string> = {
     ai_ask: 'AI chat',
     ai_research: 'deep research',
+    ai_insights: 'AI insights',
     voice: 'voice messages',
     web_scrape: 'web scraping',
     research_automation: 'automated research',

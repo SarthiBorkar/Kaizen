@@ -216,3 +216,145 @@ export async function getTaskCompletionStats(userId: number, days: number = 30) 
     args: [userId, days],
   });
 }
+
+// Streak freeze queries
+export async function getStreakFreezeStatus(telegramId: number) {
+  return await db.execute({
+    sql: `SELECT
+            streak_freezes_available,
+            last_freeze_reset_date,
+            freeze_used_on_date
+          FROM users
+          WHERE telegram_id = ?`,
+    args: [telegramId],
+  });
+}
+
+export async function useStreakFreeze(telegramId: number, freezeDate: string) {
+  return await db.execute({
+    sql: `UPDATE users
+          SET streak_freezes_available = streak_freezes_available - 1,
+              freeze_used_on_date = ?,
+              updated_at = datetime('now')
+          WHERE telegram_id = ?
+          AND streak_freezes_available > 0`,
+    args: [freezeDate, telegramId],
+  });
+}
+
+export async function resetWeeklyFreezes() {
+  // Reset freezes for users whose last reset was more than 7 days ago
+  return await db.execute({
+    sql: `UPDATE users
+          SET streak_freezes_available = 1,
+              last_freeze_reset_date = date('now'),
+              freeze_used_on_date = NULL,
+              updated_at = datetime('now')
+          WHERE date(last_freeze_reset_date) <= date('now', '-7 days')`,
+    args: [],
+  });
+}
+
+// Buddy system queries
+export async function createBuddyRequest(userId: number) {
+  return await db.execute({
+    sql: `INSERT INTO buddy_requests (user_id, status)
+          VALUES (?, 'pending')
+          RETURNING *`,
+    args: [userId],
+  });
+}
+
+export async function getPendingBuddyRequest(userId: number) {
+  return await db.execute({
+    sql: `SELECT * FROM buddy_requests
+          WHERE user_id = ? AND status = 'pending'
+          ORDER BY created_at DESC
+          LIMIT 1`,
+    args: [userId],
+  });
+}
+
+export async function cancelBuddyRequest(userId: number) {
+  return await db.execute({
+    sql: `UPDATE buddy_requests
+          SET status = 'cancelled'
+          WHERE user_id = ? AND status = 'pending'`,
+    args: [userId],
+  });
+}
+
+export async function findAvailableBuddy(excludeUserId: number) {
+  // Find the oldest pending request from a different user
+  return await db.execute({
+    sql: `SELECT br.*, u.telegram_id, u.first_name, u.username
+          FROM buddy_requests br
+          JOIN users u ON br.user_id = u.id
+          WHERE br.status = 'pending'
+          AND br.user_id != ?
+          ORDER BY br.created_at ASC
+          LIMIT 1`,
+    args: [excludeUserId],
+  });
+}
+
+export async function createBuddyMatch(user1Id: number, user2Id: number) {
+  // Ensure user1Id < user2Id for consistent ordering
+  const [smallerId, largerId] = user1Id < user2Id ? [user1Id, user2Id] : [user2Id, user1Id];
+
+  return await db.execute({
+    sql: `INSERT INTO buddy_matches (user1_id, user2_id, status)
+          VALUES (?, ?, 'active')
+          RETURNING *`,
+    args: [smallerId, largerId],
+  });
+}
+
+export async function markBuddyRequestsMatched(user1Id: number, user2Id: number) {
+  return await db.execute({
+    sql: `UPDATE buddy_requests
+          SET status = 'matched', matched_at = datetime('now')
+          WHERE user_id IN (?, ?) AND status = 'pending'`,
+    args: [user1Id, user2Id],
+  });
+}
+
+export async function getUserBuddy(userId: number) {
+  return await db.execute({
+    sql: `SELECT
+            bm.*,
+            CASE
+              WHEN bm.user1_id = ? THEN u2.telegram_id
+              ELSE u1.telegram_id
+            END as buddy_telegram_id,
+            CASE
+              WHEN bm.user1_id = ? THEN u2.first_name
+              ELSE u1.first_name
+            END as buddy_first_name,
+            CASE
+              WHEN bm.user1_id = ? THEN u2.username
+              ELSE u1.username
+            END as buddy_username,
+            CASE
+              WHEN bm.user1_id = ? THEN u2.id
+              ELSE u1.id
+            END as buddy_id
+          FROM buddy_matches bm
+          JOIN users u1 ON bm.user1_id = u1.id
+          JOIN users u2 ON bm.user2_id = u2.id
+          WHERE (bm.user1_id = ? OR bm.user2_id = ?)
+          AND bm.status = 'active'
+          LIMIT 1`,
+    args: [userId, userId, userId, userId, userId, userId],
+  });
+}
+
+export async function endBuddyMatch(userId: number) {
+  return await db.execute({
+    sql: `UPDATE buddy_matches
+          SET status = 'ended', ended_at = datetime('now')
+          WHERE (user1_id = ? OR user2_id = ?)
+          AND status = 'active'`,
+    args: [userId, userId],
+  });
+}
