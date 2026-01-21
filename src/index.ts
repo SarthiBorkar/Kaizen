@@ -32,6 +32,7 @@ import { freezeCommand } from './commands/freeze.js';
 import { reportCommand } from './commands/report.js';
 import { buddyCommand } from './commands/buddy.js';
 import { insightsCommand } from './commands/insights.js';
+import { MCPServer } from './mcp/server.js';
 
 // Initialize bot
 const bot = new Bot(config.botToken);
@@ -43,6 +44,16 @@ const dbConnected = await testConnection();
 if (!dbConnected) {
   console.error('Failed to connect to database. Exiting...');
   process.exit(1);
+}
+
+// Initialize MCP server for automation tools
+export let mcpServer: MCPServer | null = null;
+try {
+  mcpServer = new MCPServer();
+  console.log('✅ MCP automation server initialized');
+} catch (error) {
+  console.warn('⚠️ MCP server initialization failed:', error);
+  console.warn('   Automation features may be limited');
 }
 
 // Set up bot commands (shows in Telegram menu)
