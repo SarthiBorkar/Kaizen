@@ -229,3 +229,60 @@ Examples:
     return { intent: "chat", confidence: 0.5 };
   }
 }
+
+/**
+ * Extract task information from text
+ */
+export async function extractTaskInfo(
+  text: string
+): Promise<{
+  taskName: string | null;
+  reminderTime: string | null;
+}> {
+  try {
+    const groq = getGroqClient();
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `Extract task information from the user's message. Respond with ONLY a JSON object:
+{
+  "taskName": "the task description" | null,
+  "reminderTime": "6pm" | "18:00" | "6 PM" | null
+}
+
+Instructions:
+- taskName: Extract the main task/activity the user wants to do or be reminded about
+- reminderTime: Extract the time if mentioned (keep it in natural format like "6pm", "18:00", "tomorrow at 3pm")
+- If no task is found, return null for taskName
+- If no time is mentioned, return null for reminderTime
+
+Examples:
+"remind me to go to gym at 6pm" -> {"taskName": "go to gym", "reminderTime": "6pm"}
+"add workout as a task" -> {"taskName": "workout", "reminderTime": null}
+"call mom tomorrow at 3pm" -> {"taskName": "call mom", "reminderTime": "tomorrow at 3pm"}
+"meeting with John" -> {"taskName": "meeting with John", "reminderTime": null}`,
+        },
+        {
+          role: "user",
+          content: text,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.1,
+      max_tokens: 150,
+    });
+
+    const response = completion.choices[0]?.message?.content || "";
+    const parsed = JSON.parse(response);
+
+    return {
+      taskName: parsed.taskName || null,
+      reminderTime: parsed.reminderTime || null,
+    };
+  } catch (error) {
+    console.error("Error extracting task info:", error);
+    return { taskName: null, reminderTime: null };
+  }
+}

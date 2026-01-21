@@ -1,6 +1,7 @@
 import { Context } from "grammy";
-import { transcribeAudio, chatWithAI, analyzeIntent } from "../services/ai.js";
+import { transcribeAudio, chatWithAI, analyzeIntent, extractTaskInfo } from "../services/ai.js";
 import { rateLimiter, RATE_LIMITS, getRateLimitMessage } from "../utils/rate-limiter.js";
+import { getUser, createTask } from "../db/queries.js";
 import fs from "fs";
 import path from "path";
 
@@ -68,7 +69,72 @@ export async function handleVoiceMessage(ctx: Context) {
     const { intent, confidence } = await analyzeIntent(transcription);
 
     // Route based on intent
-    if (intent === "research" && confidence > 0.7) {
+    if (intent === "task" && confidence > 0.6) {
+      // Handle task creation
+      await ctx.reply("✅ Creating task...");
+
+      const taskInfo = await extractTaskInfo(transcription);
+
+      if (taskInfo.taskName) {
+        const userResult = await getUser(userId);
+        if (userResult.rows.length > 0) {
+          const dbUserId = userResult.rows[0].id as number;
+          await createTask(dbUserId, taskInfo.taskName);
+
+          let response = `✅ *Task Created!*\n\n📝 ${taskInfo.taskName}`;
+
+          if (taskInfo.reminderTime) {
+            response += `\n⏰ Reminder set for: ${taskInfo.reminderTime}`;
+          }
+
+          response += `\n\n💡 Use /view to see all your tasks!`;
+
+          await ctx.reply(response, { parse_mode: "Markdown" });
+        }
+      } else {
+        await ctx.reply("❌ Sorry, I couldn't understand the task. Try saying something like: 'Add go to gym as a task'");
+      }
+    } else if (intent === "calendar" && confidence > 0.6) {
+      // Handle reminder/calendar request
+      await ctx.reply("📅 Setting up reminder...");
+
+      const taskInfo = await extractTaskInfo(transcription);
+
+      if (taskInfo.taskName && taskInfo.reminderTime) {
+        const userResult = await getUser(userId);
+        if (userResult.rows.length > 0) {
+          const dbUserId = userResult.rows[0].id as number;
+          await createTask(dbUserId, taskInfo.taskName);
+
+          let response = `✅ *Reminder Set!*\n\n`;
+          response += `📝 Task: ${taskInfo.taskName}\n`;
+          response += `⏰ Time: ${taskInfo.reminderTime}\n\n`;
+          response += `💡 *Note:* Your daily check-in reminders are set for ${taskInfo.reminderTime}. `;
+          response += `You can change this with /remind command.\n\n`;
+          response += `For Google Calendar integration, use /calendar command.`;
+
+          await ctx.reply(response, { parse_mode: "Markdown" });
+        }
+      } else if (taskInfo.taskName) {
+        // Task but no time - just create the task
+        const userResult = await getUser(userId);
+        if (userResult.rows.length > 0) {
+          const dbUserId = userResult.rows[0].id as number;
+          await createTask(dbUserId, taskInfo.taskName);
+
+          await ctx.reply(
+            `✅ *Task Created!*\n\n📝 ${taskInfo.taskName}\n\n` +
+            `⏰ *Set reminder time:* Use /remind to choose when you want daily reminders.`,
+            { parse_mode: "Markdown" }
+          );
+        }
+      } else {
+        await ctx.reply(
+          "❌ Sorry, I couldn't understand the reminder request.\n\n" +
+          "Try saying: 'Remind me to go to gym at 6pm'"
+        );
+      }
+    } else if (intent === "research" && confidence > 0.7) {
       await ctx.reply("🔍 This looks like a research question. Let me look that up for you...");
 
       // Use Perplexity for research
