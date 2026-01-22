@@ -2,17 +2,20 @@
 export const WELCOME_MESSAGE = `
 Welcome to Kaizen! 🎯
 
-Kaizen means "continuous improvement" - and that's exactly what we're here for.
+*Kaizen* means "continuous improvement" - your AI-powered accountability partner.
 
-Research shows that when you commit to a goal in a group, your success rate jumps from 10% to 95%. Let's make it happen!
+*What I can do:*
+✅ Track your daily tasks & streaks
+✅ Set custom reminders (voice or text!)
+✅ AI chat, research & insights
+✅ Sync with Google Calendar
+✅ Group accountability (10% → 95% success rate!)
 
-I'll help you:
-✓ Set your daily commitment
-✓ Check in every day
-✓ Stay accountable with your group
-✓ Track your progress
+*💡 Pro tip:* Send me voice messages like:
+• "Remind me to exercise at 6pm"
+• "Add meditation as a task"
 
-Ready to start?
+Ready to start? 🚀
 `;
 
 export const COMMITMENT_PROMPT = `

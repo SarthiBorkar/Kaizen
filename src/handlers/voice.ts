@@ -1,7 +1,8 @@
 import { Context } from "grammy";
 import { transcribeAudio, chatWithAI, analyzeIntent, extractTaskInfo } from "../services/ai.js";
 import { rateLimiter, RATE_LIMITS, getRateLimitMessage } from "../utils/rate-limiter.js";
-import { getUser, createTask } from "../db/queries.js";
+import { getUser, createTask, createReminder } from "../db/queries.js";
+import { mcpClient } from "../mcp/client.js";
 import fs from "fs";
 import path from "path";
 
@@ -96,24 +97,94 @@ export async function handleVoiceMessage(ctx: Context) {
       }
     } else if (intent === "calendar" && confidence > 0.6) {
       // Handle reminder/calendar request
-      await ctx.reply("📅 Setting up reminder...");
-
       const taskInfo = await extractTaskInfo(transcription);
 
       if (taskInfo.taskName && taskInfo.reminderTime) {
         const userResult = await getUser(userId);
         if (userResult.rows.length > 0) {
           const dbUserId = userResult.rows[0].id as number;
-          await createTask(dbUserId, taskInfo.taskName);
 
-          let response = `✅ *Reminder Set!*\n\n`;
-          response += `📝 Task: ${taskInfo.taskName}\n`;
-          response += `⏰ Time: ${taskInfo.reminderTime}\n\n`;
-          response += `💡 *Note:* Your daily check-in reminders are set for ${taskInfo.reminderTime}. `;
-          response += `You can change this with /remind command.\n\n`;
-          response += `For Google Calendar integration, use /calendar command.`;
+          try {
+            // Parse the reminder time
+            const reminderDateTime = parseReminderTime(taskInfo.reminderTime);
 
-          await ctx.reply(response, { parse_mode: "Markdown" });
+            if (!reminderDateTime) {
+              await ctx.reply(
+                `❌ Sorry, I couldn't parse the time "${taskInfo.reminderTime}".\n\n` +
+                `Try formats like:\n` +
+                `• "at 9:30am" or "at 6pm"\n` +
+                `• "tomorrow at 3pm"\n` +
+                `• "18:00" (24-hour format)`
+              );
+              return;
+            }
+
+            // Check if time is in the past
+            if (reminderDateTime <= new Date()) {
+              await ctx.reply(
+                `❌ That time has already passed.\n\n` +
+                `Please set a reminder for a future time.`
+              );
+              return;
+            }
+
+            await ctx.reply("📅 Creating your reminder...");
+
+            let calendarEventId: string | undefined;
+            let calendarSynced = false;
+
+            // Try to create Google Calendar event
+            try {
+              const endTime = new Date(reminderDateTime.getTime() + 30 * 60 * 1000); // 30 min duration
+              const calendarResult = await mcpClient.createCalendarEvent({
+                summary: taskInfo.taskName,
+                start_time: reminderDateTime.toISOString(),
+                end_time: endTime.toISOString(),
+                reminders: [{ method: "popup", minutes: 0 }],
+              });
+              calendarEventId = calendarResult.event_id;
+              calendarSynced = true;
+            } catch (calError) {
+              console.error("Calendar sync skipped:", calError);
+              // Silent fail - calendar is optional
+            }
+
+            // Create reminder in database
+            await createReminder(
+              dbUserId,
+              userId,
+              taskInfo.taskName,
+              reminderDateTime.toISOString(),
+              `Voice reminder: ${transcription.substring(0, 100)}`,
+              calendarEventId
+            );
+
+            let response = `✅ *Reminder Created!*\n\n`;
+            response += `📝 ${taskInfo.taskName}\n`;
+            response += `⏰ ${reminderDateTime.toLocaleString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })}\n`;
+
+            if (calendarSynced) {
+              response += `\n📅 ✓ Synced to Google Calendar`;
+            }
+
+            response += `\n\n💡 I'll send you a message at the scheduled time!`;
+
+            await ctx.reply(response, { parse_mode: "Markdown" });
+          } catch (error) {
+            console.error("Error creating reminder:", error);
+            await ctx.reply(
+              `❌ Failed to create reminder.\n\n` +
+              `Error: ${error instanceof Error ? error.message : "Unknown error"}\n\n` +
+              `Try using /remind command instead.`
+            );
+          }
         }
       } else if (taskInfo.taskName) {
         // Task but no time - just create the task
@@ -123,15 +194,18 @@ export async function handleVoiceMessage(ctx: Context) {
           await createTask(dbUserId, taskInfo.taskName);
 
           await ctx.reply(
-            `✅ *Task Created!*\n\n📝 ${taskInfo.taskName}\n\n` +
-            `⏰ *Set reminder time:* Use /remind to choose when you want daily reminders.`,
+            `✅ *Task Added!*\n\n` +
+            `📝 ${taskInfo.taskName}\n\n` +
+            `Use /view to see all your tasks!`,
             { parse_mode: "Markdown" }
           );
         }
       } else {
         await ctx.reply(
-          "❌ Sorry, I couldn't understand the reminder request.\n\n" +
-          "Try saying: 'Remind me to go to gym at 6pm'"
+          `❌ I couldn't understand that reminder.\n\n` +
+          `Try saying:\n` +
+          `• "Remind me to call John at 6pm"\n` +
+          `• "Set a reminder at 9:30am to exercise"`
         );
       }
     } else if (intent === "research" && confidence > 0.7) {
@@ -177,4 +251,64 @@ export async function handleVoiceMessage(ctx: Context) {
 export async function handleAudioMessage(ctx: Context) {
   // Audio messages are handled the same way as voice messages
   await handleVoiceMessage(ctx);
+}
+
+/**
+ * Parse reminder time from natural language
+ * Supports formats like: "6pm", "9:30am", "18:00", "tomorrow at 3pm", etc.
+ */
+function parseReminderTime(timeStr: string): Date | null {
+  try {
+    const now = new Date();
+    timeStr = timeStr.toLowerCase().trim();
+
+    // Handle "tomorrow" prefix
+    let targetDate = new Date(now);
+    if (timeStr.includes("tomorrow")) {
+      targetDate.setDate(targetDate.getDate() + 1);
+      timeStr = timeStr.replace("tomorrow", "").trim();
+    }
+
+    // Remove "at" prefix if present
+    timeStr = timeStr.replace(/^at\s+/, "");
+
+    // Parse time formats
+    // Format: "9:30am", "9:30 am", "9:30", "9am", "9 am", "18:00", "18"
+    const timeMatch = timeStr.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i);
+
+    if (!timeMatch) {
+      return null;
+    }
+
+    let hours = parseInt(timeMatch[1]);
+    const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+    const ampm = timeMatch[3];
+
+    // Convert to 24-hour format
+    if (ampm) {
+      if (ampm.toLowerCase() === "pm" && hours !== 12) {
+        hours += 12;
+      } else if (ampm.toLowerCase() === "am" && hours === 12) {
+        hours = 0;
+      }
+    }
+
+    // Validate hours and minutes
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      return null;
+    }
+
+    // Set the time
+    targetDate.setHours(hours, minutes, 0, 0);
+
+    // If time is in the past and no "tomorrow" was specified, assume next day
+    if (targetDate <= now && !timeStr.includes("tomorrow")) {
+      targetDate.setDate(targetDate.getDate() + 1);
+    }
+
+    return targetDate;
+  } catch (error) {
+    console.error("Error parsing reminder time:", error);
+    return null;
+  }
 }

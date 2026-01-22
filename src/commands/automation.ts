@@ -19,20 +19,20 @@ export async function automationCommand(ctx: Context) {
     inline_keyboard: [
       [{ text: "📝 Research Topic", callback_data: "auto_research" }],
       [{ text: "🌐 Scrape Web Page", callback_data: "auto_scrape" }],
-      [{ text: "📅 Create Calendar Event", callback_data: "auto_calendar" }],
+      [{ text: "📅 Google Calendar", callback_data: "auto_calendar" }],
       [{ text: "📄 Create Document", callback_data: "auto_document" }],
-      [{ text: "🔄 View Workflows", callback_data: "auto_workflows" }],
     ],
   };
 
   await ctx.reply(
     "🤖 *Automation Hub*\n\n" +
-      "Welcome to the Kaizen Automation System! Choose what you'd like to automate:\n\n" +
-      "• Research topics and save to Notion/Drive/Obsidian\n" +
-      "• Scrape web pages and convert to documents\n" +
-      "• Manage your Google Calendar\n" +
-      "• Create and manage documents\n" +
-      "• Set up custom workflows",
+      "Available automation tools:\n\n" +
+      "✅ *Research* - Deep research with web sources\n" +
+      "✅ *Web Scraper* - Extract content from URLs\n" +
+      "✅ *Calendar* - Manage Google Calendar events\n" +
+      "✅ *Documents* - Create markdown/PDF files\n\n" +
+      "📦 *Save to:* Notion, Drive, Obsidian\n" +
+      "⚙️ *Note:* Some features require API keys (see /help)",
     {
       parse_mode: "Markdown",
       reply_markup: keyboard,
@@ -60,9 +60,12 @@ export async function researchCommand(ctx: Context) {
 
   await ctx.reply(
     "📚 *Research Assistant*\n\n" +
-      "What topic would you like me to research?\n\n" +
-      "Example: 'stablecoins', 'DeFi protocols', 'blockchain scalability'\n\n" +
-      "Just type the topic and I'll create a comprehensive research document for you.",
+      "What would you like me to research?\n\n" +
+      "💡 Examples:\n" +
+      "• \"stablecoins\"\n" +
+      "• \"DeFi protocols\"\n" +
+      "• \"blockchain scalability\"\n\n" +
+      "I'll create a comprehensive research document with sources.",
     { parse_mode: "Markdown" }
   );
 }
@@ -87,13 +90,13 @@ export async function scrapeCommand(ctx: Context) {
 
   await ctx.reply(
     "🌐 *Web Scraper*\n\n" +
-      "Send me a URL and I'll extract the content and save it for you.\n\n" +
-      "I can save it to:\n" +
-      "• Notion\n" +
-      "• Google Drive\n" +
-      "• Obsidian\n" +
-      "• Local PDF\n\n" +
-      "Just send the URL:",
+      "Send me a URL to extract and save:\n\n" +
+      "💾 *Save options:*\n" +
+      "• Notion (requires API key)\n" +
+      "• Google Drive (requires credentials)\n" +
+      "• Obsidian (local vault)\n" +
+      "• Markdown/PDF file\n\n" +
+      "📝 Just send the URL:",
     { parse_mode: "Markdown" }
   );
 }
@@ -101,6 +104,23 @@ export async function scrapeCommand(ctx: Context) {
 export async function calendarCommand(ctx: Context) {
   const userId = ctx.from?.id;
   if (!userId) return;
+
+  const hasGoogleCredentials = !!process.env.GOOGLE_CREDENTIALS;
+
+  if (!hasGoogleCredentials) {
+    await ctx.reply(
+      "📅 *Google Calendar*\n\n" +
+        "⚠️ Google Calendar requires setup.\n\n" +
+        "📌 *What works now:*\n" +
+        "• Voice reminders sync automatically (if configured)\n" +
+        "• Use /remind for daily check-in reminders\n\n" +
+        "🔧 *To enable full calendar features:*\n" +
+        "Set GOOGLE_CREDENTIALS in your .env file\n\n" +
+        "💡 *Tip:* Voice messages like \"remind me at 9am\" will still work!",
+      { parse_mode: "Markdown" }
+    );
+    return;
+  }
 
   const keyboard = {
     inline_keyboard: [
@@ -110,8 +130,9 @@ export async function calendarCommand(ctx: Context) {
   };
 
   await ctx.reply(
-    "📅 *Google Calendar Manager*\n\n" +
-      "What would you like to do with your calendar?",
+    "📅 *Google Calendar*\n\n" +
+      "✅ Calendar connected!\n\n" +
+      "What would you like to do?",
     {
       parse_mode: "Markdown",
       reply_markup: keyboard,
@@ -166,20 +187,29 @@ export async function handleAutomationCallback(ctx: Context) {
       break;
 
     case "cal_list":
-      await ctx.reply("📋 Loading your upcoming events...");
+      await ctx.reply("📋 Loading your calendar events...");
       try {
         const events = await mcpClient.listCalendarEvents({
           max_results: 10,
         });
 
         if (!events.success || events.events.length === 0) {
-          await ctx.reply("No upcoming events found.");
+          await ctx.reply(
+            "📅 No upcoming events found.\n\n" +
+            "Your calendar is clear for the next 7 days!"
+          );
           return;
         }
 
-        let message = "📅 *Upcoming Events*\n\n";
+        let message = "📅 *Your Upcoming Events*\n\n";
         for (const event of events.events) {
-          const startDate = new Date(event.start).toLocaleString();
+          const startDate = new Date(event.start).toLocaleString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          });
           message += `• *${event.summary}*\n`;
           message += `  ${startDate}\n`;
           if (event.location) message += `  📍 ${event.location}\n`;
@@ -189,8 +219,9 @@ export async function handleAutomationCallback(ctx: Context) {
         await ctx.reply(message, { parse_mode: "Markdown" });
       } catch (error) {
         await ctx.reply(
-          `❌ Failed to load events: ${error instanceof Error ? error.message : String(error)}\n\n` +
-            "Make sure GOOGLE_CREDENTIALS is configured."
+          `❌ *Calendar Error*\n\n` +
+            `${error instanceof Error ? error.message : "Unknown error"}\n\n` +
+            "⚙️ Check GOOGLE_CREDENTIALS in .env file"
         );
       }
       break;
@@ -251,7 +282,7 @@ export async function handleAutomationMessage(ctx: Context) {
 
 async function handleResearchTopic(
   ctx: Context,
-  userId: number,
+  _userId: number,
   topic: string,
   state: any
 ) {
@@ -280,17 +311,22 @@ async function handleResearchTopic(
 
 async function handleScrapeUrl(
   ctx: Context,
-  userId: number,
+  _userId: number,
   url: string,
-  state: any
+  _state: any
 ) {
   // Validate URL
   if (!url.startsWith("http://") && !url.startsWith("https://")) {
-    await ctx.reply("Please provide a valid URL starting with http:// or https://");
+    await ctx.reply(
+      "❌ Invalid URL\n\n" +
+      "Please provide a valid URL:\n" +
+      "• Must start with http:// or https://\n" +
+      "• Example: https://example.com/article"
+    );
     return;
   }
 
-  await ctx.reply("🌐 Scraping the web page... This may take a moment.");
+  await ctx.reply("🌐 Extracting content from web page...");
 
   try {
     const result = await mcpClient.extractContent({
@@ -306,19 +342,25 @@ async function handleScrapeUrl(
     });
 
     await ctx.reply(
-      `✅ *Content Extracted Successfully!*\n\n` +
-        `📄 Title: ${result.title}\n` +
-        `💾 Saved to: ${doc.file_path}\n\n` +
-        `Would you like to save this to Notion, Google Drive, or Obsidian as well?`,
+      `✅ *Content Saved!*\n\n` +
+        `📄 ${result.title}\n` +
+        `💾 File: ${doc.file_path}\n\n` +
+        `💡 Want to save to Notion/Drive/Obsidian?\n` +
+        `Use /automate and select the destination.`,
       { parse_mode: "Markdown" }
     );
 
-    automationStates.delete(userId);
+    automationStates.delete(_userId);
   } catch (error) {
     await ctx.reply(
-      `❌ Failed to scrape: ${error instanceof Error ? error.message : String(error)}`
+      `❌ *Scraping Failed*\n\n` +
+        `${error instanceof Error ? error.message : "Unknown error"}\n\n` +
+        `💡 Possible issues:\n` +
+        `• Website blocks scraping\n` +
+        `• Invalid URL\n` +
+        `• Network error`
     );
-    automationStates.delete(userId);
+    automationStates.delete(_userId);
   }
 }
 
@@ -363,7 +405,20 @@ async function handleCreateEvent(
     // Parse the datetime
     const startTime = new Date(datetime);
     if (isNaN(startTime.getTime())) {
-      await ctx.reply("Invalid date format. Please use: YYYY-MM-DD HH:MM");
+      await ctx.reply(
+        "❌ Invalid date format.\n\n" +
+        "Please use: YYYY-MM-DD HH:MM\n" +
+        "Example: 2025-01-25 14:30"
+      );
+      return;
+    }
+
+    // Check if time is in the past
+    if (startTime <= new Date()) {
+      await ctx.reply(
+        "❌ That time has already passed.\n\n" +
+        "Please choose a future date and time."
+      );
       return;
     }
 
@@ -381,16 +436,23 @@ async function handleCreateEvent(
     await ctx.reply(
       `✅ *Event Created!*\n\n` +
         `📅 ${state.data.summary}\n` +
-        `🕐 ${startTime.toLocaleString()}\n` +
-        `🔗 ${result.event_link}`,
+        `🕐 ${startTime.toLocaleString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        })}\n` +
+        `🔗 [View in Calendar](${result.event_link})`,
       { parse_mode: "Markdown" }
     );
 
     automationStates.delete(userId);
   } catch (error) {
     await ctx.reply(
-      `❌ Failed to create event: ${error instanceof Error ? error.message : String(error)}\n\n` +
-        "Make sure GOOGLE_CREDENTIALS is configured."
+      `❌ *Calendar Error*\n\n` +
+        `${error instanceof Error ? error.message : "Unknown error"}\n\n` +
+        "⚙️ Check GOOGLE_CREDENTIALS in .env file"
     );
     automationStates.delete(userId);
   }

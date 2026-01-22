@@ -26,44 +26,48 @@ Start by messaging me privately: @KaizenBot
     `);
   } else {
     // Help message for private chats
-    await ctx.reply(`
-🎌 **Kaizen Bot - Your Accountability Partner**
+    await ctx.reply(
+      `🎌 *Kaizen Bot - Your Accountability Partner*\n\n` +
 
-**Getting Started:**
-• /start - Set up your daily commitment
+      `*📌 Core Features:*\n` +
+      `• /start - Begin your journey\n` +
+      `• /checkin - Daily check-in (4 levels)\n` +
+      `• /view - Calendar & 14-day streak\n` +
+      `• /addtask - Add tasks (max 5)\n` +
+      `• /groups - Join accountability groups\n\n` +
 
-**Daily Practice:**
-• /checkin - Check in (4 levels!)
-  - 🎉 Crushed it!
-  - ✅ Completed
-  - 💪 Partial
-  - ❌ Missed
+      `*🤖 AI Features:*\n` +
+      `• Voice messages - Natural task/reminder creation\n` +
+      `• /ask - Chat with AI assistant\n` +
+      `• /dr - Deep research with sources\n` +
+      `• /insights - AI habit insights\n\n` +
 
-**Track Progress:**
-• /view - Monthly calendar + 14-day streak
-• /stats - Rank card & detailed statistics
-• /groups - See all your groups
+      `*⏰ Reminders:*\n` +
+      `• /remind - Set daily check-in time\n` +
+      `• Voice: "Remind me to X at 9:30am" ✓\n` +
+      `• Syncs to Google Calendar (if configured)\n\n` +
 
-**Inspiration:**
-• /quote - Daily Japanese wisdom (kotowaza)
+      `*⚙️ Automation:*\n` +
+      `• /automate - Research, scraping, calendar\n` +
+      `• /calendar - Manage Google Calendar\n` +
+      `• Save to: Notion, Drive, Obsidian\n\n` +
 
-**Group Features:**
-• Add me to a group to enable social accountability
-• Your check-ins will be shared with the group
-• See group leaderboards and today's check-ins
+      `*🔧 Setup Required (Optional):*\n` +
+      `• GROQ_API_KEY - Voice & AI features\n` +
+      `• GOOGLE_CREDENTIALS - Calendar sync\n` +
+      `• NOTION_API_KEY - Notion integration\n\n` +
 
-**🥋 Rank System:**
-🤍 White → 🟡 Yellow → 🟠 Orange → 🟢 Green → 🔵 Blue → 🟤 Brown → ⚫ Black Belt
+      `*💪 Pro Tips:*\n` +
+      `• Send voice messages for quick tasks\n` +
+      `• Add bot to groups for social accountability\n` +
+      `• Use /freeze to protect your streak (1/week)\n\n` +
 
-**🌸 Seasonal Progress:**
-春 Spring → 夏 Summer → 秋 Autumn → 冬 Winter
-
-Need help? Just ask! 💪
-
-改善 (Kaizen) = Continuous Improvement
-    `, {
-      reply_markup: mainMenuKeyboard(),
-    });
+      `改善 (Kaizen) = Continuous Improvement`,
+      {
+        parse_mode: "Markdown",
+        reply_markup: mainMenuKeyboard(),
+      }
+    );
   }
 }
 

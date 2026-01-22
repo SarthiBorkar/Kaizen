@@ -4,7 +4,7 @@ import { db } from '../db/client.js';
 import { CHECKIN_PROMPT } from '../utils/messages.js';
 import { checkinKeyboard } from '../utils/keyboards.js';
 import { getTodayDate } from '../utils/dates.js';
-import { resetWeeklyFreezes } from '../db/queries.js';
+import { resetWeeklyFreezes, getPendingReminders, markReminderSent } from '../db/queries.js';
 import { sendWeeklyReports } from '../commands/report.js';
 
 // Schedule reminders for each hour (8am, 6pm, 8pm, 10pm)
@@ -41,9 +41,19 @@ export function scheduleReminders(bot: Bot) {
     }
   });
 
+  // Check for pending custom reminders every minute
+  cron.schedule('* * * * *', async () => {
+    try {
+      await sendPendingReminders(bot);
+    } catch (error) {
+      console.error('Error sending pending reminders:', error);
+    }
+  });
+
   console.log('✅ Reminder scheduler initialized');
   console.log('✅ Streak freeze reset scheduler initialized');
   console.log('✅ Weekly report scheduler initialized (Sundays at 8 PM)');
+  console.log('✅ Custom reminder scheduler initialized (checks every minute)');
 }
 
 async function sendReminders(bot: Bot, hour: number) {
@@ -243,5 +253,45 @@ export async function sendTestReminder(bot: any, telegramId: number) {
   } catch (error) {
     console.error('Error sending test reminder:', error);
     throw error;
+  }
+}
+
+// Send pending custom reminders
+async function sendPendingReminders(bot: Bot) {
+  try {
+    const now = new Date().toISOString();
+    const pendingReminders = await getPendingReminders(now);
+
+    if (pendingReminders.rows.length === 0) {
+      return;
+    }
+
+    console.log(`⏰ Sending ${pendingReminders.rows.length} custom reminders`);
+
+    for (const reminder of pendingReminders.rows) {
+      try {
+        const telegramId = reminder.telegram_id as number;
+        const title = reminder.title as string;
+        const description = reminder.description as string | null;
+        const reminderId = reminder.id as number;
+
+        let message = `⏰ **Reminder**\n\n📝 ${title}`;
+        if (description) {
+          message += `\n\n${description}`;
+        }
+
+        await bot.api.sendMessage(telegramId, message, {
+          parse_mode: 'Markdown',
+        });
+
+        // Mark as sent
+        await markReminderSent(reminderId);
+        console.log(`✅ Sent reminder ${reminderId} to ${telegramId}`);
+      } catch (error) {
+        console.error(`Failed to send reminder ${reminder.id}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error('Error in sendPendingReminders:', error);
   }
 }

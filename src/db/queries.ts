@@ -358,3 +358,55 @@ export async function endBuddyMatch(userId: number) {
     args: [userId, userId],
   });
 }
+
+// Reminder queries
+export async function createReminder(
+  userId: number,
+  telegramId: number,
+  title: string,
+  reminderTime: string,
+  description?: string,
+  calendarEventId?: string
+) {
+  return await db.execute({
+    sql: `INSERT INTO reminders (user_id, telegram_id, title, description, reminder_time, calendar_event_id)
+          VALUES (?, ?, ?, ?, ?, ?)
+          RETURNING *`,
+    args: [userId, telegramId, title, description || null, reminderTime, calendarEventId || null],
+  });
+}
+
+export async function getPendingReminders(beforeTime: string) {
+  return await db.execute({
+    sql: `SELECT * FROM reminders
+          WHERE is_sent = FALSE
+          AND reminder_time <= ?
+          ORDER BY reminder_time ASC`,
+    args: [beforeTime],
+  });
+}
+
+export async function getUserReminders(userId: number, includeCompleted: boolean = false) {
+  return await db.execute({
+    sql: includeCompleted
+      ? `SELECT * FROM reminders WHERE user_id = ? ORDER BY reminder_time DESC LIMIT 50`
+      : `SELECT * FROM reminders WHERE user_id = ? AND is_sent = FALSE ORDER BY reminder_time ASC`,
+    args: [userId],
+  });
+}
+
+export async function markReminderSent(reminderId: number) {
+  return await db.execute({
+    sql: `UPDATE reminders
+          SET is_sent = TRUE, updated_at = datetime('now')
+          WHERE id = ?`,
+    args: [reminderId],
+  });
+}
+
+export async function deleteReminder(reminderId: number) {
+  return await db.execute({
+    sql: 'DELETE FROM reminders WHERE id = ?',
+    args: [reminderId],
+  });
+}
