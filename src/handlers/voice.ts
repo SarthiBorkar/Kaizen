@@ -103,10 +103,11 @@ export async function handleVoiceMessage(ctx: Context) {
         const userResult = await getUser(userId);
         if (userResult.rows.length > 0) {
           const dbUserId = userResult.rows[0].id as number;
+          const userTimezone = (userResult.rows[0].timezone as string) || 'UTC';
 
           try {
-            // Parse the reminder time
-            const reminderDateTime = parseReminderTime(taskInfo.reminderTime);
+            // Parse the reminder time in user's timezone
+            const reminderDateTime = parseReminderTime(taskInfo.reminderTime, userTimezone);
 
             if (!reminderDateTime) {
               await ctx.reply(
@@ -114,7 +115,9 @@ export async function handleVoiceMessage(ctx: Context) {
                 `Try formats like:\n` +
                 `• "at 9:30am" or "at 6pm"\n` +
                 `• "tomorrow at 3pm"\n` +
-                `• "18:00" (24-hour format)`
+                `• "18:00" (24-hour format)\n\n` +
+                `⏰ Your timezone: ${userTimezone}\n` +
+                `Change it: /timezone`
               );
               return;
             }
@@ -161,20 +164,15 @@ export async function handleVoiceMessage(ctx: Context) {
 
             let response = `✅ *Reminder Created!*\n\n`;
             response += `📝 ${taskInfo.taskName}\n`;
-            response += `⏰ ${reminderDateTime.toLocaleString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            })}\n`;
+            response += `⏰ ${formatDateInTimezone(reminderDateTime, userTimezone)}\n`;
+            response += `🌍 ${userTimezone}\n`;
 
             if (calendarSynced) {
               response += `\n📅 ✓ Synced to Google Calendar`;
             }
 
-            response += `\n\n💡 I'll send you a message at the scheduled time!`;
+            response += `\n\n💡 I'll notify you at this time!\n`;
+            response += `_Change timezone: /timezone_`;
 
             await ctx.reply(response, { parse_mode: "Markdown" });
           } catch (error) {
@@ -254,18 +252,21 @@ export async function handleAudioMessage(ctx: Context) {
 }
 
 /**
- * Parse reminder time from natural language
+ * Parse reminder time from natural language in user's timezone
  * Supports formats like: "6pm", "9:30am", "18:00", "tomorrow at 3pm", etc.
  */
-function parseReminderTime(timeStr: string): Date | null {
+function parseReminderTime(timeStr: string, timezone: string): Date | null {
   try {
+    // Get current time in user's timezone
     const now = new Date();
+    const userNow = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
+
     timeStr = timeStr.toLowerCase().trim();
 
     // Handle "tomorrow" prefix
-    let targetDate = new Date(now);
+    let isTomorrow = false;
     if (timeStr.includes("tomorrow")) {
-      targetDate.setDate(targetDate.getDate() + 1);
+      isTomorrow = true;
       timeStr = timeStr.replace("tomorrow", "").trim();
     }
 
@@ -298,17 +299,53 @@ function parseReminderTime(timeStr: string): Date | null {
       return null;
     }
 
-    // Set the time
+    // Create target date in user's timezone
+    const targetDate = new Date(userNow);
     targetDate.setHours(hours, minutes, 0, 0);
 
+    // If tomorrow was specified, add one day
+    if (isTomorrow) {
+      targetDate.setDate(targetDate.getDate() + 1);
+    }
     // If time is in the past and no "tomorrow" was specified, assume next day
-    if (targetDate <= now && !timeStr.includes("tomorrow")) {
+    else if (targetDate <= userNow) {
       targetDate.setDate(targetDate.getDate() + 1);
     }
 
-    return targetDate;
+    // Convert the time string to UTC by creating a date with timezone info
+    const dateString = targetDate.toLocaleString("en-US", { timeZone: timezone });
+    const utcDate = new Date(dateString);
+
+    // Get the offset difference
+    const localDate = new Date(dateString);
+    const offset = localDate.getTime() - utcDate.getTime();
+
+    // Apply the offset to get the correct UTC time
+    const correctedDate = new Date(targetDate.getTime() - offset);
+
+    return correctedDate;
   } catch (error) {
     console.error("Error parsing reminder time:", error);
     return null;
+  }
+}
+
+/**
+ * Format date in user's timezone
+ */
+function formatDateInTimezone(date: Date, timezone: string): string {
+  try {
+    return date.toLocaleString("en-US", {
+      timeZone: timezone,
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch (error) {
+    console.error("Error formatting date in timezone:", error);
+    return date.toLocaleString();
   }
 }

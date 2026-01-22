@@ -32,6 +32,7 @@ import { freezeCommand } from './commands/freeze.js';
 import { reportCommand } from './commands/report.js';
 import { buddyCommand } from './commands/buddy.js';
 import { insightsCommand } from './commands/insights.js';
+import { timezoneCommand } from './commands/timezone.js';
 import { MCPServer } from './mcp/server.js';
 
 // Initialize bot
@@ -70,6 +71,7 @@ await bot.api.setMyCommands([
   { command: 'dr', description: '🔬 Deep research with sources' },
   { command: 'insights', description: '🔮 AI habit insights' },
   { command: 'remind', description: '⏰ Set daily reminder time' },
+  { command: 'timezone', description: '🌍 Set your timezone' },
   { command: 'freeze', description: '❄️ Use streak freeze' },
   { command: 'report', description: '📊 Weekly progress report' },
   { command: 'buddy', description: '👥 Find accountability partner' },
@@ -114,6 +116,7 @@ bot.command('clearai', clearAICommand);
 
 // Reminder & Streak commands
 bot.command('remind', remindCommand);
+bot.command('timezone', timezoneCommand);
 bot.command('freeze', freezeCommand);
 bot.command('report', reportCommand);
 bot.command('buddy', buddyCommand);

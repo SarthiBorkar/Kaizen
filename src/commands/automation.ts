@@ -269,7 +269,10 @@ export async function handleAutomationMessage(ctx: Context) {
         break;
 
       case "awaiting_event_datetime":
-        await handleCreateEvent(ctx, userId, messageText, state);
+        const { getUser } = await import('../db/queries.js');
+        const userResult = await getUser(userId);
+        const userTimezone = (userResult.rows[0]?.timezone as string) || 'UTC';
+        await handleCreateEvent(ctx, userId, messageText, state, userTimezone);
         break;
     }
   } catch (error) {
@@ -397,18 +400,43 @@ async function handleCreateDocument(
 
 async function handleCreateEvent(
   ctx: Context,
-  userId: number,
+  _userId: number,
   datetime: string,
-  state: any
+  state: any,
+  timezone: string = 'UTC'
 ) {
   try {
-    // Parse the datetime
-    const startTime = new Date(datetime);
-    if (isNaN(startTime.getTime())) {
+    // Parse the datetime in user's timezone
+    // Format: YYYY-MM-DD HH:MM
+    const dateMatch = datetime.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})$/);
+
+    if (!dateMatch) {
       await ctx.reply(
         "❌ Invalid date format.\n\n" +
         "Please use: YYYY-MM-DD HH:MM\n" +
-        "Example: 2025-01-25 14:30"
+        "Example: 2025-01-25 14:30\n\n" +
+        `⏰ Your timezone: ${timezone}`
+      );
+      return;
+    }
+
+    const year = parseInt(dateMatch[1]);
+    const month = parseInt(dateMatch[2]) - 1; // JS months are 0-indexed
+    const day = parseInt(dateMatch[3]);
+    const hour = parseInt(dateMatch[4]);
+    const minute = parseInt(dateMatch[5]);
+
+    // Create date string in user's timezone
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+
+    // Parse in user's timezone
+    const localDateStr = new Date(dateStr).toLocaleString('en-US', { timeZone: timezone });
+    const startTime = new Date(localDateStr);
+
+    if (isNaN(startTime.getTime())) {
+      await ctx.reply(
+        "❌ Invalid date or time.\n\n" +
+        "Please check your input and try again."
       );
       return;
     }
@@ -433,28 +461,32 @@ async function handleCreateEvent(
       end_time: endTime.toISOString(),
     });
 
+    const timeInUserTz = startTime.toLocaleString("en-US", {
+      timeZone: timezone,
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
     await ctx.reply(
       `✅ *Event Created!*\n\n` +
         `📅 ${state.data.summary}\n` +
-        `🕐 ${startTime.toLocaleString("en-US", {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        })}\n` +
+        `🕐 ${timeInUserTz}\n` +
+        `🌍 ${timezone}\n` +
         `🔗 [View in Calendar](${result.event_link})`,
       { parse_mode: "Markdown" }
     );
 
-    automationStates.delete(userId);
+    automationStates.delete(_userId);
   } catch (error) {
     await ctx.reply(
       `❌ *Calendar Error*\n\n` +
         `${error instanceof Error ? error.message : "Unknown error"}\n\n` +
         "⚙️ Check GOOGLE_CREDENTIALS in .env file"
     );
-    automationStates.delete(userId);
+    automationStates.delete(_userId);
   }
 }
 
